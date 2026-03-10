@@ -33,10 +33,14 @@ export default function Navbar() {
             <Image
               src="/legado.png"
               alt="Legado Bazar y Deco"
-              width={120}
-              height={44}
+              width={160}
+              height={56}
               className="object-contain group-hover:opacity-90 transition-opacity"
-              style={{ maxHeight: 44 }}
+              style={{
+                maxHeight: 52,
+                // Logo oscuro sobre fondo oscuro → convertir a crema #F2E6C8
+                filter: 'brightness(0) invert(1) sepia(1) saturate(0.3) hue-rotate(340deg)',
+              }}
               priority
             />
           </a>
