@@ -23,27 +23,22 @@ export default function Navbar() {
       className="sticky top-0 z-50"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-20">
 
-          {/* Logo + BAZAR y DECO */}
+          {/* Logo + Bazar & Deco */}
           <a href="/" className="flex items-center gap-3 group flex-shrink-0">
             <Image
               src="/legado.png"
               alt="Legado"
-              width={220}
-              height={56}
+              width={286}
+              height={73}
               className="object-contain group-hover:opacity-90 transition-opacity"
-              style={{ maxHeight: 56, width: 'auto', display: 'block' }}
+              style={{ maxHeight: 73, width: 'auto', display: 'block' }}
               priority
             />
-            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.3 }}>
-              <span style={{ fontFamily: "'Playfair Display', serif", color: '#3D1A05', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase' }}>
-                BAZAR
-              </span>
-              <span style={{ fontFamily: "'Playfair Display', serif", color: '#3D1A05', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase' }}>
-                y DECO
-              </span>
-            </div>
+            <span style={{ fontFamily: "'Playfair Display', serif", color: '#3D1A05', fontSize: '1rem', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+              Bazar &amp; Deco
+            </span>
           </a>
 
           {/* Desktop nav */}
