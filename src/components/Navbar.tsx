@@ -29,20 +29,25 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
 
           {/* Logo */}
-          <a href="/" className="flex items-center gap-2 group flex-shrink-0">
-            <Image
-              src="/legado.png"
-              alt="Legado Bazar y Deco"
-              width={160}
-              height={56}
-              className="object-contain group-hover:opacity-90 transition-opacity"
+          <a href="/" className="flex items-center group flex-shrink-0">
+            <div
               style={{
-                maxHeight: 52,
-                // Logo oscuro sobre fondo oscuro → convertir a crema #F2E6C8
-                filter: 'brightness(0) invert(1) sepia(1) saturate(0.3) hue-rotate(340deg)',
+                backgroundColor: 'rgba(242, 230, 200, 0.92)',
+                borderRadius: '6px',
+                padding: '4px 10px',
               }}
-              priority
-            />
+              className="group-hover:opacity-90 transition-opacity"
+            >
+              <Image
+                src="/legado.png"
+                alt="Legado Bazar y Deco"
+                width={160}
+                height={48}
+                className="object-contain"
+                style={{ maxHeight: 48, display: 'block' }}
+                priority
+              />
+            </div>
           </a>
 
           {/* Desktop nav */}
