@@ -25,7 +25,7 @@ export default function Footer() {
                 marginBottom: '8px',
               }}
             >
-              Legado ByD
+              Legado Bazar y Deco
             </h3>
             <p
               style={{
@@ -127,7 +127,7 @@ export default function Footer() {
           className="flex flex-col sm:flex-row justify-between items-center gap-2"
         >
           <p style={{ color: '#7A6040', fontSize: '0.8rem' }}>
-            © {new Date().getFullYear()} Legado ByD — Todos los derechos reservados
+            © {new Date().getFullYear()} Legado Bazar y Deco — Todos los derechos reservados
           </p>
           <p style={{ color: '#7A6040', fontSize: '0.8rem' }}>
             Neuquén, Patagonia Argentina 🌾

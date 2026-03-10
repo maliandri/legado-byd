@@ -74,7 +74,7 @@ function AdminPanel() {
                 fontWeight: 700,
               }}
             >
-              Legado ByD — Admin
+              Legado Bazar y Deco — Admin
             </span>
           </div>
           <div className="flex items-center gap-3">

@@ -63,7 +63,7 @@ export default function LoginPage() {
                 fontWeight: 700,
               }}
             >
-              Legado ByD
+              Legado Bazar y Deco
             </span>
           </div>
 

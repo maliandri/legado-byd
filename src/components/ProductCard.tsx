@@ -1,6 +1,9 @@
-import { MessageCircle, Tag } from 'lucide-react'
+'use client'
+
+import { MessageCircle, Tag, ShoppingCart } from 'lucide-react'
 import Image from 'next/image'
 import type { Producto } from '@/types'
+import { useCart } from '@/context/CartContext'
 
 const whatsapp = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '5492990000000'
 
@@ -15,9 +18,16 @@ interface Props {
 }
 
 export default function ProductCard({ producto }: Props) {
+  const { addItem, setOpen } = useCart()
+
   const mensaje = encodeURIComponent(
     `Hola! Me interesa el producto: *${producto.nombre}*. ¿Podrías darme más información?`
   )
+
+  function handleAgregar() {
+    addItem(producto)
+    setOpen(true)
+  }
 
   return (
     <article
@@ -77,7 +87,6 @@ export default function ProductCard({ producto }: Props) {
 
       {/* Contenido */}
       <div className="flex flex-col flex-1 p-4">
-        {/* Categoría */}
         <div className="flex items-center gap-1 mb-2">
           <Tag size={11} style={{ color: '#A0622A' }} />
           <span style={{ color: '#A0622A', fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -85,7 +94,6 @@ export default function ProductCard({ producto }: Props) {
           </span>
         </div>
 
-        {/* Nombre */}
         <h3
           style={{
             fontFamily: "'Playfair Display', serif",
@@ -99,7 +107,6 @@ export default function ProductCard({ producto }: Props) {
           {producto.nombre}
         </h3>
 
-        {/* Descripción */}
         {producto.descripcion && (
           <p
             style={{ color: '#6B3A1A', fontSize: '0.85rem', lineHeight: '1.5', marginBottom: '12px', flexGrow: 1 }}
@@ -109,36 +116,45 @@ export default function ProductCard({ producto }: Props) {
           </p>
         )}
 
-        {/* Precio */}
-        <div
-          className="flex items-center justify-between mt-auto pt-3"
-          style={{ borderTop: '1px solid #DDD0A8' }}
-        >
+        <div className="mt-auto pt-3" style={{ borderTop: '1px solid #DDD0A8' }}>
           <span
             style={{
               fontFamily: "'Playfair Display', serif",
               color: '#3D1A05',
               fontSize: '1.3rem',
               fontWeight: 700,
+              display: 'block',
+              marginBottom: '10px',
             }}
           >
             ${producto.precio.toLocaleString('es-AR')}
           </span>
 
-          <a
-            href={`https://wa.me/${whatsapp}?text=${mensaje}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-sm text-xs font-semibold transition-opacity hover:opacity-80"
-            style={{ backgroundColor: '#4A5E1A', color: '#F2E6C8' }}
-          >
-            <MessageCircle size={13} />
-            Consultar
-          </a>
+          <div className="flex gap-2">
+            <button
+              onClick={handleAgregar}
+              disabled={!producto.stock}
+              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-sm text-xs font-semibold transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ backgroundColor: '#3D1A05', color: '#F2E6C8' }}
+            >
+              <ShoppingCart size={12} />
+              {producto.stock ? 'Agregar' : 'Sin stock'}
+            </button>
+
+            <a
+              href={`https://wa.me/${whatsapp}?text=${mensaje}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-sm text-xs font-semibold transition-opacity hover:opacity-80"
+              style={{ backgroundColor: '#4A5E1A', color: '#F2E6C8' }}
+            >
+              <MessageCircle size={12} />
+              Consultar
+            </a>
+          </div>
         </div>
       </div>
 
-      {/* Línea decorativa dorada inferior */}
       <div
         className="h-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
         style={{ backgroundColor: '#C4A040' }}
