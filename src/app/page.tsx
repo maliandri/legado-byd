@@ -19,13 +19,13 @@ export default function HomePage() {
         <section
           className="relative overflow-hidden"
           style={{
-            background: 'linear-gradient(135deg, #3D1A05 0%, #6B3A1A 50%, #4A5E1A 100%)',
+            backgroundColor: '#FDF8EE',
             minHeight: '520px',
           }}
         >
           {/* Textura de fondo */}
           <div
-            className="absolute inset-0 opacity-20"
+            className="absolute inset-0 opacity-10"
             style={{
               backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23C4A040' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
             }}
@@ -42,12 +42,11 @@ export default function HomePage() {
             <h1
               style={{
                 fontFamily: "'Playfair Display', serif",
-                color: '#F2E6C8',
+                color: '#3D1A05',
                 fontSize: 'clamp(2.5rem, 6vw, 4.5rem)',
                 fontWeight: 800,
                 lineHeight: 1.15,
                 marginBottom: '16px',
-                textShadow: '0 2px 12px rgba(0,0,0,0.3)',
               }}
             >
               El almacén del panadero
@@ -67,7 +66,7 @@ export default function HomePage() {
 
             <p
               style={{
-                color: '#DDD0A8',
+                color: '#6B3A1A',
                 fontSize: '1rem',
                 maxWidth: '560px',
                 lineHeight: '1.7',
@@ -92,7 +91,7 @@ export default function HomePage() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="px-7 py-3.5 rounded-sm font-semibold text-sm transition-all hover:opacity-80"
-                style={{ border: '1.5px solid #C4A040', color: '#F2E6C8', backgroundColor: 'transparent' }}
+                style={{ border: '1.5px solid #C4A040', color: '#3D1A05', backgroundColor: 'transparent' }}
               >
                 Consultar por WhatsApp
               </a>
