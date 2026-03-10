@@ -36,13 +36,13 @@ export default function Navbar() {
             />
           </a>
 
-          {/* BAZAR & DECO — centrado absoluto */}
+          {/* BAZAR & DECO — centrado entre logo y links */}
           <span
-            className="hidden md:block absolute left-1/2 -translate-x-1/2 pointer-events-none select-none"
+            className="hidden md:block flex-1 text-center pointer-events-none select-none"
             style={{
               fontFamily: "'Playfair Display', serif",
               color: '#3D1A05',
-              fontSize: '1.05rem',
+              fontSize: '1.37rem',
               fontWeight: 700,
               letterSpacing: '0.22em',
               textTransform: 'uppercase',
