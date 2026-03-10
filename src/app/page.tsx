@@ -2,6 +2,7 @@ import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import ProductGrid from '@/components/ProductGrid'
 import WhatsAppButton from '@/components/WhatsAppButton'
+import WheatBackground from '@/components/WheatBackground'
 
 const categorias = [
   { id: '1', nombre: 'Panadería', slug: 'panaderia', emoji: '🍞' },
@@ -14,7 +15,8 @@ export default function HomePage() {
   return (
     <>
       <Navbar />
-      <main>
+      <main style={{ position: 'relative' }}>
+        <WheatBackground />
         {/* ── HERO ── */}
         <section
           className="relative overflow-hidden"
