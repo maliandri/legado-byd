@@ -42,7 +42,7 @@ export default function Navbar() {
             style={{
               fontFamily: "'Playfair Display', serif",
               color: '#3D1A05',
-              fontSize: '1.37rem',
+              fontSize: '2.74rem',
               fontWeight: 700,
               letterSpacing: '0.22em',
               textTransform: 'uppercase',
