@@ -1,0 +1,148 @@
+import { MessageCircle, Tag } from 'lucide-react'
+import Image from 'next/image'
+import type { Producto } from '@/types'
+
+const whatsapp = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '5492990000000'
+
+const categoriaLabel: Record<string, string> = {
+  panaderia: '🍞 Panadería',
+  pasteleria: '🎂 Pastelería',
+  decoracion: '✨ Decoración',
+}
+
+interface Props {
+  producto: Producto
+}
+
+export default function ProductCard({ producto }: Props) {
+  const mensaje = encodeURIComponent(
+    `Hola! Me interesa el producto: *${producto.nombre}*. ¿Podrías darme más información?`
+  )
+
+  return (
+    <article
+      className="group flex flex-col overflow-hidden rounded-sm transition-all duration-300 hover:-translate-y-1"
+      style={{
+        backgroundColor: '#FDF8EE',
+        border: '1px solid #DDD0A8',
+        boxShadow: '0 2px 8px rgba(61, 26, 5, 0.08)',
+      }}
+      onMouseEnter={(e) => {
+        const el = e.currentTarget
+        el.style.boxShadow = '0 8px 32px rgba(61, 26, 5, 0.18)'
+        el.style.borderColor = '#C4A040'
+      }}
+      onMouseLeave={(e) => {
+        const el = e.currentTarget
+        el.style.boxShadow = '0 2px 8px rgba(61, 26, 5, 0.08)'
+        el.style.borderColor = '#DDD0A8'
+      }}
+    >
+      {/* Imagen */}
+      <div
+        className="relative overflow-hidden"
+        style={{ height: 200, backgroundColor: '#F2E6C8' }}
+      >
+        {producto.imagen ? (
+          <Image
+            src={producto.imagen}
+            alt={producto.nombre}
+            fill
+            className="object-cover group-hover:scale-105 transition-transform duration-500"
+          />
+        ) : (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+            <span style={{ fontSize: '3rem' }}>
+              {producto.categoria === 'panaderia' ? '🍞' :
+               producto.categoria === 'pasteleria' ? '🎂' : '✨'}
+            </span>
+            <span style={{ color: '#A0622A', fontSize: '0.75rem' }}>Sin imagen</span>
+          </div>
+        )}
+
+        {/* Badge stock */}
+        <div className="absolute top-3 right-3">
+          <span
+            className="px-2 py-1 rounded-sm text-xs font-semibold"
+            style={
+              producto.stock
+                ? { backgroundColor: '#C8DEC8', color: '#2A4A2A' }
+                : { backgroundColor: '#E8C49A', color: '#6B3A1A' }
+            }
+          >
+            {producto.stock ? 'Disponible' : 'Sin stock'}
+          </span>
+        </div>
+      </div>
+
+      {/* Contenido */}
+      <div className="flex flex-col flex-1 p-4">
+        {/* Categoría */}
+        <div className="flex items-center gap-1 mb-2">
+          <Tag size={11} style={{ color: '#A0622A' }} />
+          <span style={{ color: '#A0622A', fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            {categoriaLabel[producto.categoria] || producto.categoria}
+          </span>
+        </div>
+
+        {/* Nombre */}
+        <h3
+          style={{
+            fontFamily: "'Playfair Display', serif",
+            color: '#3D1A05',
+            fontSize: '1.1rem',
+            fontWeight: 600,
+            marginBottom: '6px',
+            lineHeight: '1.3',
+          }}
+        >
+          {producto.nombre}
+        </h3>
+
+        {/* Descripción */}
+        {producto.descripcion && (
+          <p
+            style={{ color: '#6B3A1A', fontSize: '0.85rem', lineHeight: '1.5', marginBottom: '12px', flexGrow: 1 }}
+            className="line-clamp-2"
+          >
+            {producto.descripcion}
+          </p>
+        )}
+
+        {/* Precio */}
+        <div
+          className="flex items-center justify-between mt-auto pt-3"
+          style={{ borderTop: '1px solid #DDD0A8' }}
+        >
+          <span
+            style={{
+              fontFamily: "'Playfair Display', serif",
+              color: '#3D1A05',
+              fontSize: '1.3rem',
+              fontWeight: 700,
+            }}
+          >
+            ${producto.precio.toLocaleString('es-AR')}
+          </span>
+
+          <a
+            href={`https://wa.me/${whatsapp}?text=${mensaje}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-sm text-xs font-semibold transition-opacity hover:opacity-80"
+            style={{ backgroundColor: '#4A5E1A', color: '#F2E6C8' }}
+          >
+            <MessageCircle size={13} />
+            Consultar
+          </a>
+        </div>
+      </div>
+
+      {/* Línea decorativa dorada inferior */}
+      <div
+        className="h-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+        style={{ backgroundColor: '#C4A040' }}
+      />
+    </article>
+  )
+}

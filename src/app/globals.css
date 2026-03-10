@@ -1,26 +1,164 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,600&family=Inter:wght@300;400;500;600&display=swap');
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ═══════════════════════════════════════════════════
+   PALETA LEGADO ByD — Basada en el logo original
+   ═══════════════════════════════════════════════════
+
+   COLORES TIERRA (del logo):
+   Pergamino/Fondo:   #F2E6C8
+   Chocolate/Texto:   #3D1A05
+   Dorado/Bordes:     #C4A040
+   Oliva/Trigo:       #4A5E1A
+
+   PASTELES PANADERÍA (complementarios, olor a pan):
+   Leche caliente:    #F9EDD3  — base principal
+   Masa cruda:        #EDD9A3  — acentos suaves
+   Canela pastel:     #E8C49A  — cards y hovers
+   Lavanda horno:     #DDD0E8  — tags decorativos
+   Menta pastel:      #C8DEC8  — badges stock/disponible
+   Durazno pastel:    #F5CAAA  — llamadas a la acción suaves
+   ═══════════════════════════════════════════════════ */
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* ── Tierra (del logo) ── */
+  --color-pergamino:     #F2E6C8;
+  --color-chocolate:     #3D1A05;
+  --color-dorado:        #C4A040;
+  --color-oliva:         #4A5E1A;
+
+  /* ── Variantes tierra ── */
+  --color-chocolate-medio: #6B3A1A;
+  --color-chocolate-claro: #A0622A;
+  --color-dorado-claro:    #DDB85A;
+  --color-dorado-oscuro:   #9A7A1A;
+  --color-oliva-claro:     #7A9A40;
+  --color-pergamino-oscuro:#DDD0A8;
+  --color-pergamino-claro: #FDF8EE;
+
+  /* ── Pasteles panadería ── */
+  --color-leche:         #F9EDD3;
+  --color-masa:          #EDD9A3;
+  --color-canela:        #E8C49A;
+  --color-lavanda-pan:   #DDD0E8;
+  --color-menta-pan:     #C8DEC8;
+  --color-durazno-pan:   #F5CAAA;
+  --color-crema-suave:   #FFF8EE;
+
+  /* ── Tipografías ── */
+  --font-serif: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  --font-sans:  'Inter', system-ui, sans-serif;
+
+  /* ── Sombras cálidas ── */
+  --shadow-pergamino: 0 4px 24px 0 rgba(61, 26, 5, 0.12);
+  --shadow-dorado:    0 0 0 2px #C4A040;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ═══════════════════════════════════════════════════
+   ESTILOS BASE
+   ═══════════════════════════════════════════════════ */
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-leche);
+  color: var(--color-chocolate);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ═══════════════════════════════════════════════════
+   TIPOGRAFÍA
+   ═══════════════════════════════════════════════════ */
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-serif);
+  color: var(--color-chocolate);
+  line-height: 1.25;
+}
+
+/* ═══════════════════════════════════════════════════
+   TEXTURA PERGAMINO — Efecto parchment/envejecido
+   ═══════════════════════════════════════════════════ */
+
+.parchment {
+  background-color: var(--color-pergamino);
+  position: relative;
+}
+
+.parchment::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(ellipse at 20% 20%, rgba(196, 160, 64, 0.08) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 80%, rgba(74, 94, 26, 0.06) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════════════
+   BORDE DORADO DECORATIVO
+   ═══════════════════════════════════════════════════ */
+
+.borde-dorado {
+  border: 2px solid var(--color-dorado);
+  position: relative;
+}
+
+.borde-dorado-fino {
+  border: 1px solid var(--color-dorado-claro);
+}
+
+/* ═══════════════════════════════════════════════════
+   SEPARADOR ORNAMENTAL
+   ═══════════════════════════════════════════════════ */
+
+.separador-ornamental {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--color-dorado);
+  font-family: var(--font-serif);
+}
+
+.separador-ornamental::before,
+.separador-ornamental::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--color-dorado), transparent);
+}
+
+/* ═══════════════════════════════════════════════════
+   SCROLLBAR
+   ═══════════════════════════════════════════════════ */
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-pergamino);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-dorado);
+  border-radius: 4px;
+}
+
+/* ═══════════════════════════════════════════════════
+   SELECCIÓN DE TEXTO
+   ═══════════════════════════════════════════════════ */
+
+::selection {
+  background: var(--color-dorado);
+  color: var(--color-chocolate);
 }
