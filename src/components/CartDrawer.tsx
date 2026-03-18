@@ -3,14 +3,31 @@
 import { X, Plus, Minus, Trash2, ShoppingCart, MessageCircle } from 'lucide-react'
 import Image from 'next/image'
 import { useCart } from '@/context/CartContext'
+import { useAuth } from '@/hooks/useAuth'
+import { savePedido } from '@/lib/firebase/pedidos'
 
 const whatsapp = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '5492990000000'
 
 export default function CartDrawer() {
   const { items, open, totalItems, totalPrecio, setOpen, removeItem, increment, decrement, clearCart } = useCart()
+  const { user, isCustomer } = useAuth()
 
-  function handlePedirPorWhatsApp() {
+  async function handlePedirPorWhatsApp() {
     if (items.length === 0) return
+
+    // Guardar pedido en Firestore si el cliente está logueado
+    if (isCustomer && user) {
+      try {
+        await savePedido(user.uid, items.map((i) => ({
+          productoId: i.producto.id,
+          nombre: i.producto.nombre,
+          precio: i.producto.precio,
+          cantidad: i.cantidad,
+        })))
+      } catch (e) {
+        console.error('Error guardando pedido:', e)
+      }
+    }
 
     const lineas = items.map(
       (i) => `• *${i.producto.nombre}* x${i.cantidad} — $${(i.producto.precio * i.cantidad).toLocaleString('es-AR')}`

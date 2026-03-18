@@ -3,7 +3,6 @@
 import { useState, useRef } from 'react'
 import { X, Upload, Loader2 } from 'lucide-react'
 import { createProducto, updateProducto } from '@/lib/firebase/firestore'
-import { uploadProductImage } from '@/lib/firebase/storage'
 import type { Producto, Categoria } from '@/types'
 
 interface Props {
@@ -20,6 +19,15 @@ const defaultForm = {
   categoria: 'panaderia',
   stock: true,
   imagen: '',
+}
+
+async function uploadViaApi(file: File): Promise<string> {
+  const fd = new FormData()
+  fd.append('file', file)
+  const res = await fetch('/api/upload', { method: 'POST', body: fd })
+  if (!res.ok) throw new Error('Error al subir imagen a Cloudinary')
+  const { url } = await res.json()
+  return url
 }
 
 export default function ProductForm({ producto, categorias, onClose, onSaved }: Props) {
@@ -67,14 +75,13 @@ export default function ProductForm({ producto, categorias, onClose, onSaved }: 
       if (isEdit && producto) {
         let imagenUrl = form.imagen
         if (file) {
-          imagenUrl = await uploadProductImage(file, producto.id)
+          imagenUrl = await uploadViaApi(file)
         }
         await updateProducto(producto.id, { ...data, imagen: imagenUrl })
       } else {
-        // Crear primero sin imagen para tener ID, luego subir imagen
         const id = await createProducto({ ...data, imagen: '' })
         if (file) {
-          const imagenUrl = await uploadProductImage(file, id)
+          const imagenUrl = await uploadViaApi(file)
           await updateProducto(id, { imagen: imagenUrl })
         }
       }

@@ -2,8 +2,9 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
-import { Menu, X, ShoppingCart } from 'lucide-react'
+import { Menu, X, ShoppingCart, UserCircle } from 'lucide-react'
 import { useCart } from '@/context/CartContext'
+import { useAuth } from '@/hooks/useAuth'
 
 const categorias = [
   { nombre: 'Panadería', slug: 'panaderia', emoji: '🍞' },
@@ -14,6 +15,7 @@ const categorias = [
 export default function Navbar() {
   const [open, setOpen] = useState(false)
   const { totalItems, setOpen: setCartOpen } = useCart()
+  const { user, profile, isAdmin, isCustomer } = useAuth()
 
   return (
     <nav
@@ -77,6 +79,28 @@ export default function Navbar() {
                 </span>
               )}
             </button>
+
+            {/* Login / Perfil */}
+            {!isAdmin && (
+              isCustomer ? (
+                <a href="/mi-cuenta"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-sm text-sm font-semibold hover:opacity-80 transition-opacity"
+                  style={{ border: '1.5px solid #4A5E1A', color: '#4A5E1A' }}
+                  title={profile?.nombre || user?.email || 'Mi cuenta'}
+                >
+                  <UserCircle size={16} />
+                  <span className="hidden lg:inline max-w-[80px] truncate">{profile?.nombre?.split(' ')[0] || 'Mi cuenta'}</span>
+                </a>
+              ) : (
+                <a href="/login"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-sm text-sm font-semibold hover:opacity-80 transition-opacity"
+                  style={{ border: '1.5px solid #A0622A', color: '#A0622A' }}
+                >
+                  <UserCircle size={16} />
+                  <span className="hidden lg:inline">Ingresar</span>
+                </a>
+              )
+            )}
           </div>
 
           {/* Mobile */}

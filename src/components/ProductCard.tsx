@@ -1,9 +1,12 @@
 'use client'
 
-import { MessageCircle, Tag, ShoppingCart } from 'lucide-react'
+import { MessageCircle, Tag, ShoppingCart, Heart } from 'lucide-react'
 import Image from 'next/image'
 import type { Producto } from '@/types'
 import { useCart } from '@/context/CartContext'
+import { useAuth } from '@/hooks/useAuth'
+import { toggleFavorito } from '@/lib/firebase/usuarios'
+import { useState } from 'react'
 
 const whatsapp = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '5492990000000'
 
@@ -19,6 +22,9 @@ interface Props {
 
 export default function ProductCard({ producto }: Props) {
   const { addItem, setOpen } = useCart()
+  const { user, isCustomer, profile, refreshProfile } = useAuth()
+  const isFav = profile?.favoritos?.includes(producto.id) ?? false
+  const [toggling, setToggling] = useState(false)
 
   const mensaje = encodeURIComponent(
     `Hola! Me interesa el producto: *${producto.nombre}*. ¿Podrías darme más información?`
@@ -27,6 +33,14 @@ export default function ProductCard({ producto }: Props) {
   function handleAgregar() {
     addItem(producto)
     setOpen(true)
+  }
+
+  async function handleFavorito() {
+    if (!isCustomer || !user) { window.location.href = '/login'; return }
+    setToggling(true)
+    await toggleFavorito(user.uid, producto.id, isFav)
+    refreshProfile()
+    setToggling(false)
   }
 
   return (
@@ -69,6 +83,17 @@ export default function ProductCard({ producto }: Props) {
             <span style={{ color: '#A0622A', fontSize: '0.75rem' }}>Sin imagen</span>
           </div>
         )}
+
+        {/* Botón favorito */}
+        <button
+          onClick={handleFavorito}
+          disabled={toggling}
+          className="absolute top-3 left-3 p-1.5 rounded-full transition-all hover:scale-110"
+          style={{ backgroundColor: 'rgba(253,248,238,0.85)', color: isFav ? '#C4A040' : '#A0622A' }}
+          title={isFav ? 'Quitar de favoritos' : 'Guardar en favoritos'}
+        >
+          <Heart size={14} fill={isFav ? '#C4A040' : 'none'} />
+        </button>
 
         {/* Badge stock */}
         <div className="absolute top-3 right-3">
