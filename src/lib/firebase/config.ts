@@ -16,43 +16,60 @@ function getFirebaseApp(): FirebaseApp {
   return getApps().length ? getApp() : initializeApp(firebaseConfig)
 }
 
+let _auth: Auth | null = null
+
 export function getFirebaseAuth(): Auth {
-  const { getAuth } = require('firebase/auth')
-  return getAuth(getFirebaseApp())
+  if (_auth) return _auth
+  const {
+    initializeAuth,
+    indexedDBLocalPersistence,
+    browserLocalPersistence,
+    browserPopupRedirectResolver,
+  } = require('firebase/auth')
+  _auth = initializeAuth(getFirebaseApp(), {
+    persistence: [indexedDBLocalPersistence, browserLocalPersistence],
+    popupRedirectResolver: browserPopupRedirectResolver,
+  })
+  return _auth!
 }
 
+let _db: Firestore | null = null
 export function getFirebaseDb(): Firestore {
-  const { getFirestore } = require('firebase/firestore')
-  return getFirestore(getFirebaseApp())
+  if (!_db) {
+    const { getFirestore } = require('firebase/firestore')
+    _db = getFirestore(getFirebaseApp())
+  }
+  return _db!
 }
 
+let _storage: FirebaseStorage | null = null
 export function getFirebaseStorage(): FirebaseStorage {
-  const { getStorage } = require('firebase/storage')
-  return getStorage(getFirebaseApp())
+  if (!_storage) {
+    const { getStorage } = require('firebase/storage')
+    _storage = getStorage(getFirebaseApp())
+  }
+  return _storage!
 }
 
 // Lazy singletons — sólo se instancian en el cliente
-let _auth: Auth | null = null
-let _db: Firestore | null = null
-let _storage: FirebaseStorage | null = null
-
 export const auth = new Proxy({} as Auth, {
   get(_, prop) {
-    if (!_auth) _auth = getFirebaseAuth()
-    return (_auth as any)[prop]
+    return (getFirebaseAuth() as any)[prop]
+  },
+  set(_, prop, value) {
+    ;(getFirebaseAuth() as any)[prop] = value
+    return true
   },
 })
 
 export const db = new Proxy({} as Firestore, {
   get(_, prop) {
-    if (!_db) _db = getFirebaseDb()
-    return (_db as any)[prop]
+    return (getFirebaseDb() as any)[prop]
   },
 })
 
 export const storage = new Proxy({} as FirebaseStorage, {
   get(_, prop) {
-    if (!_storage) _storage = getFirebaseStorage()
-    return (_storage as any)[prop]
+    return (getFirebaseStorage() as any)[prop]
   },
 })
