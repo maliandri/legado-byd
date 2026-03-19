@@ -38,7 +38,7 @@ export default function ProductForm({ producto, categorias, onClose, onSaved }: 
     descripcion: producto?.descripcion || '',
     precio: producto?.precio?.toString() || '',
     categoria: producto?.categoria || categorias[0]?.slug || 'panaderia',
-    stock: producto?.stock?.toString() ?? '0',
+    stock: typeof producto?.stock === 'boolean' ? (producto.stock ? '1' : '0') : (producto?.stock?.toString() ?? '0'),
     imagen: producto?.imagen || '',
   })
   const [file, setFile] = useState<File | null>(null)
