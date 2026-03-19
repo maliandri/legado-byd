@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { uploadToCloudinary } from '@/lib/cloudinary/upload'
 
+export const runtime = 'nodejs'
+
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData()
