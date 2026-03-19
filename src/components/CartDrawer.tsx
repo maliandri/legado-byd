@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { useCart } from '@/context/CartContext'
 import { useAuth } from '@/hooks/useAuth'
 import { savePedido } from '@/lib/firebase/pedidos'
+import { decrementStock } from '@/lib/firebase/firestore'
 
 const whatsapp = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '5492990000000'
 
@@ -27,6 +28,13 @@ export default function CartDrawer() {
       } catch (e) {
         console.error('Error guardando pedido:', e)
       }
+    }
+
+    // Decrementar stock en Firestore
+    try {
+      await Promise.all(items.map(i => decrementStock(i.producto.id, i.cantidad)))
+    } catch (e) {
+      console.error('Error decrementando stock:', e)
     }
 
     const lineas = items.map(

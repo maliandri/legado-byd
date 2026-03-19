@@ -4,7 +4,7 @@ export interface Producto {
   descripcion: string
   precio: number
   categoria: string // slug de categoría
-  stock: boolean
+  stock: number  // cantidad en stock (0 = sin stock)
   imagen: string // URL de Cloudinary
   createdAt: Date
   updatedAt: Date

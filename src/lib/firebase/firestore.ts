@@ -98,3 +98,11 @@ export async function updateCategoria(id: string, data: Partial<Omit<Categoria, 
 export async function deleteCategoria(id: string): Promise<void> {
   await deleteDoc(doc(db(), 'categorias', id))
 }
+
+export async function decrementStock(id: string, cantidad: number): Promise<void> {
+  const { increment } = await import('firebase/firestore')
+  await updateDoc(doc(db(), 'productos', id), {
+    stock: increment(-cantidad),
+    updatedAt: serverTimestamp(),
+  })
+}

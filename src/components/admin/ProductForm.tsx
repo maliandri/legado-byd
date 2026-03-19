@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { X, Upload, Loader2 } from 'lucide-react'
+import { X, Upload, Loader2, Sparkles } from 'lucide-react'
 import { createProducto, updateProducto } from '@/lib/firebase/firestore'
 import type { Producto, Categoria } from '@/types'
 
@@ -17,7 +17,7 @@ const defaultForm = {
   descripcion: '',
   precio: '',
   categoria: 'panaderia',
-  stock: true,
+  stock: '0',
   imagen: '',
 }
 
@@ -38,12 +38,13 @@ export default function ProductForm({ producto, categorias, onClose, onSaved }: 
     descripcion: producto?.descripcion || '',
     precio: producto?.precio?.toString() || '',
     categoria: producto?.categoria || categorias[0]?.slug || 'panaderia',
-    stock: producto?.stock ?? true,
+    stock: producto?.stock?.toString() ?? '0',
     imagen: producto?.imagen || '',
   })
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState(producto?.imagen || '')
   const [saving, setSaving] = useState(false)
+  const [generando, setGenerando] = useState(false)
   const [error, setError] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -68,6 +69,26 @@ export default function ProductForm({ producto, categorias, onClose, onSaved }: 
     return () => window.removeEventListener('paste', handlePaste)
   }, [])
 
+  async function handleGenerarDescripcion() {
+    if (!form.nombre.trim()) { setError('Ingresá un nombre antes de generar la descripción.'); return }
+    setError('')
+    setGenerando(true)
+    try {
+      const res = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre: form.nombre, categoria: form.categoria }),
+      })
+      const data = await res.json()
+      if (data.descripcion) setForm(f => ({ ...f, descripcion: data.descripcion }))
+      else setError('No se pudo generar la descripción.')
+    } catch {
+      setError('Error al conectar con Gemini.')
+    } finally {
+      setGenerando(false)
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
@@ -82,7 +103,7 @@ export default function ProductForm({ producto, categorias, onClose, onSaved }: 
         descripcion: form.descripcion.trim(),
         precio: Number(form.precio),
         categoria: form.categoria,
-        stock: form.stock,
+        stock: Number(form.stock),
         imagen: form.imagen,
       }
 
@@ -182,7 +203,19 @@ export default function ProductForm({ producto, categorias, onClose, onSaved }: 
 
           {/* Descripción */}
           <div>
-            <label style={labelStyle}>Descripción</label>
+            <div className="flex items-center justify-between mb-1">
+              <label style={{ ...labelStyle, marginBottom: 0 }}>Descripción</label>
+              <button
+                type="button"
+                onClick={handleGenerarDescripcion}
+                disabled={generando}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-sm text-xs font-semibold transition-opacity hover:opacity-80 disabled:opacity-50"
+                style={{ backgroundColor: '#C4A040', color: '#3D1A05' }}
+              >
+                {generando ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
+                {generando ? 'Generando...' : 'Generar con IA'}
+              </button>
+            </div>
             <textarea
               style={{ ...inputStyle, minHeight: '80px', resize: 'vertical' }}
               value={form.descripcion}
@@ -223,19 +256,17 @@ export default function ProductForm({ producto, categorias, onClose, onSaved }: 
           </div>
 
           {/* Stock */}
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setForm({ ...form, stock: !form.stock })}
-              className="flex items-center gap-2 px-4 py-2 rounded-sm text-sm font-semibold transition-all"
-              style={
-                form.stock
-                  ? { backgroundColor: '#C8DEC8', color: '#2A4A2A', border: '1px solid #4A5E1A' }
-                  : { backgroundColor: '#E8C49A', color: '#6B3A1A', border: '1px solid #A0622A' }
-              }
-            >
-              {form.stock ? '✓ En stock' : '✗ Sin stock'}
-            </button>
+          <div>
+            <label style={labelStyle}>Stock (unidades)</label>
+            <input
+              style={inputStyle}
+              type="number"
+              min="0"
+              step="1"
+              value={form.stock}
+              onChange={(e) => setForm({ ...form, stock: e.target.value })}
+              placeholder="0"
+            />
           </div>
 
           {/* Imagen */}

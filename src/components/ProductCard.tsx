@@ -72,7 +72,7 @@ export default function ProductCard({ producto }: Props) {
             src={producto.imagen}
             alt={producto.nombre}
             fill
-            className="object-cover group-hover:scale-105 transition-transform duration-500"
+            className="object-contain group-hover:scale-105 transition-transform duration-500 p-2"
           />
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
@@ -100,12 +100,12 @@ export default function ProductCard({ producto }: Props) {
           <span
             className="px-2 py-1 rounded-sm text-xs font-semibold"
             style={
-              producto.stock
+              producto.stock > 0
                 ? { backgroundColor: '#C8DEC8', color: '#2A4A2A' }
                 : { backgroundColor: '#E8C49A', color: '#6B3A1A' }
             }
           >
-            {producto.stock ? 'Disponible' : 'Sin stock'}
+            {producto.stock > 0 ? `Stock: ${producto.stock}` : 'Sin stock'}
           </span>
         </div>
       </div>
