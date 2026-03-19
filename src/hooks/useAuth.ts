@@ -9,7 +9,7 @@ import {
   signOut as firebaseSignOut,
   User,
 } from 'firebase/auth'
-import { auth } from '@/lib/firebase/config'
+import { getFirebaseAuth } from '@/lib/firebase/config'
 import { getUsuario, createUsuario } from '@/lib/firebase/usuarios'
 import type { Usuario } from '@/types'
 
@@ -21,6 +21,7 @@ export function useAuth() {
   const [loading, setLoading] = useState(true)
 
   const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL
+  const auth = getFirebaseAuth()
 
   useEffect(() => {
     // Manejar resultado del redirect de Google
@@ -65,7 +66,7 @@ export function useAuth() {
 
   async function signInWithGoogle(): Promise<{ error?: string }> {
     try {
-      await signInWithRedirect(auth, provider)
+      await signInWithRedirect(getFirebaseAuth(), provider)
       return {}
     } catch (err) {
       console.error(err)
@@ -75,7 +76,7 @@ export function useAuth() {
 
   async function signInCustomer(): Promise<{ error?: string }> {
     try {
-      await signInWithRedirect(auth, provider)
+      await signInWithRedirect(getFirebaseAuth(), provider)
       return {}
     } catch (err) {
       console.error(err)
