@@ -1,16 +1,26 @@
+'use client'
+
+import { useState, useEffect } from 'react'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import ProductGrid from '@/components/ProductGrid'
 import WhatsAppButton from '@/components/WhatsAppButton'
 import WheatBackground from '@/components/WheatBackground'
+import { getCategorias } from '@/lib/firebase/firestore'
+import type { Categoria } from '@/types'
 
-const categorias = [
+const CATEGORIAS_FALLBACK: Categoria[] = [
   { id: '1', nombre: 'Panadería', slug: 'panaderia', emoji: '🍞' },
   { id: '2', nombre: 'Pastelería', slug: 'pasteleria', emoji: '🎂' },
   { id: '3', nombre: 'Decoración', slug: 'decoracion', emoji: '✨' },
 ]
 
 export default function HomePage() {
+  const [categorias, setCategorias] = useState<Categoria[]>(CATEGORIAS_FALLBACK)
+
+  useEffect(() => {
+    getCategorias().then(cats => { if (cats.length) setCategorias(cats) }).catch(() => {})
+  }, [])
 
   return (
     <>
