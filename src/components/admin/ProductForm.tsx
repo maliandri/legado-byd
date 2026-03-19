@@ -81,7 +81,7 @@ export default function ProductForm({ producto, categorias, onClose, onSaved }: 
       })
       const data = await res.json()
       if (data.descripcion) setForm(f => ({ ...f, descripcion: data.descripcion }))
-      else setError('No se pudo generar la descripción.')
+      else setError(`Gemini error: ${data.error || 'Sin respuesta'} | key: ${data.hasKey ? 'OK' : 'FALTA'}`)
     } catch {
       setError('Error al conectar con Gemini.')
     } finally {

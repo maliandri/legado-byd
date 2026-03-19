@@ -35,6 +35,11 @@ Reglas estrictas:
     return NextResponse.json({ descripcion })
   } catch (err: any) {
     console.error('Gemini error:', err)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({
+      error: err.message || 'Error desconocido',
+      status: err.status || null,
+      details: err.errorDetails || err.toString(),
+      hasKey: !!process.env.GEMINI_API_KEY,
+    }, { status: 500 })
   }
 }
