@@ -7,6 +7,7 @@ import {
   getRedirectResult,
   GoogleAuthProvider,
   signOut as firebaseSignOut,
+  browserPopupRedirectResolver,
   User,
 } from 'firebase/auth'
 import { getFirebaseAuth } from '@/lib/firebase/config'
@@ -25,7 +26,7 @@ export function useAuth() {
 
   useEffect(() => {
     // Manejar resultado del redirect de Google
-    getRedirectResult(auth).then(async (result) => {
+    getRedirectResult(auth, browserPopupRedirectResolver).then(async (result) => {
       if (result?.user) {
         const u = result.user
         if (u.email !== adminEmail) {
@@ -66,7 +67,7 @@ export function useAuth() {
 
   async function signInWithGoogle(): Promise<{ error?: string }> {
     try {
-      await signInWithRedirect(getFirebaseAuth(), provider)
+      await signInWithRedirect(getFirebaseAuth(), provider, browserPopupRedirectResolver)
       return {}
     } catch (err) {
       console.error(err)
@@ -76,7 +77,7 @@ export function useAuth() {
 
   async function signInCustomer(): Promise<{ error?: string }> {
     try {
-      await signInWithRedirect(getFirebaseAuth(), provider)
+      await signInWithRedirect(getFirebaseAuth(), provider, browserPopupRedirectResolver)
       return {}
     } catch (err) {
       console.error(err)
