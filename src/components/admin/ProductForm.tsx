@@ -25,9 +25,9 @@ async function uploadViaApi(file: File): Promise<string> {
   const fd = new FormData()
   fd.append('file', file)
   const res = await fetch('/api/upload', { method: 'POST', body: fd })
-  if (!res.ok) throw new Error('Error al subir imagen a Cloudinary')
-  const { url } = await res.json()
-  return url
+  const data = await res.json()
+  if (!res.ok) throw new Error(`Cloudinary ${data.http_code || res.status}: ${data.error || data.details} | cloud:${data.cloudName} key:${data.hasKey} secret:${data.hasSecret}`)
+  return data.url
 }
 
 export default function ProductForm({ producto, categorias, onClose, onSaved }: Props) {
