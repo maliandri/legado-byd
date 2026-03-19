@@ -23,7 +23,7 @@ export async function uploadToCloudinary(
   const signature = sign({ folder, public_id, timestamp })
 
   const fd = new FormData()
-  fd.append('file', new Blob([buffer]))
+  fd.append('file', new Blob([new Uint8Array(buffer)]))
   fd.append('api_key', API_KEY)
   fd.append('timestamp', timestamp)
   fd.append('signature', signature)
