@@ -253,7 +253,7 @@ export default function ProductForm({ producto, categorias, onClose, onSaved }: 
                 <>
                   <Upload size={24} style={{ color: '#A0622A' }} />
                   <span style={{ color: '#6B3A1A', fontSize: '0.85rem' }}>
-                    Clic para subir o pegá con Ctrl+V
+                    Clic para subir, foto de cámara o pegá Ctrl+V
                   </span>
                 </>
               )}
