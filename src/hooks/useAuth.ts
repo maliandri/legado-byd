@@ -3,18 +3,16 @@
 import { useState, useEffect } from 'react'
 import {
   onAuthStateChanged,
-  signInWithRedirect,
-  getRedirectResult,
+  signInWithCredential,
   GoogleAuthProvider,
   signOut as firebaseSignOut,
-  browserPopupRedirectResolver,
   User,
 } from 'firebase/auth'
 import { getFirebaseAuth } from '@/lib/firebase/config'
 import { getUsuario, createUsuario } from '@/lib/firebase/usuarios'
 import type { Usuario } from '@/types'
 
-const provider = new GoogleAuthProvider()
+const GOOGLE_CLIENT_ID = '881207105146-p6eks33q98p7p2oshmnfgqc4k87i9pno.apps.googleusercontent.com'
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null)
@@ -23,29 +21,12 @@ export function useAuth() {
 
   const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || process.env.NEXT_PUBLIC_ADMIN_EMAIL || '')
     .split(',').map(e => e.trim()).filter(Boolean)
-  const auth = getFirebaseAuth()
 
   useEffect(() => {
-    // Manejar resultado del redirect de Google
-    getRedirectResult(auth, browserPopupRedirectResolver).then(async (result) => {
-      if (result?.user) {
-        const u = result.user
-        if (!adminEmails.includes(u.email ?? "")) {
-          // Cliente: crear perfil si no existe
-          let userProfile = await getUsuario(u.uid)
-          if (!userProfile) {
-            await createUsuario(u.uid, {
-              email: u.email ?? '',
-              nombre: u.displayName ?? u.email?.split('@')[0] ?? 'Cliente',
-            })
-          }
-        }
-      }
-    }).catch(console.error)
-
+    const auth = getFirebaseAuth()
     const unsubscribe = onAuthStateChanged(auth, async (u) => {
       setUser(u)
-      if (u && !adminEmails.includes(u.email ?? "")) {
+      if (u && !adminEmails.includes(u.email ?? '')) {
         let userProfile = await getUsuario(u.uid)
         if (!userProfile) {
           await createUsuario(u.uid, {
@@ -63,31 +44,41 @@ export function useAuth() {
     return unsubscribe
   }, [])
 
-  const isAdmin = adminEmails.includes(user?.email ?? "")
+  const isAdmin = adminEmails.includes(user?.email ?? '')
   const isCustomer = !!user && !isAdmin
 
-  async function signInWithGoogle(): Promise<{ error?: string }> {
-    try {
-      await signInWithRedirect(getFirebaseAuth(), provider, browserPopupRedirectResolver)
-      return {}
-    } catch (err) {
-      console.error(err)
-      return { error: 'Error al iniciar sesión. Intentá de nuevo.' }
-    }
-  }
-
-  async function signInCustomer(): Promise<{ error?: string }> {
-    try {
-      await signInWithRedirect(getFirebaseAuth(), provider, browserPopupRedirectResolver)
-      return {}
-    } catch (err) {
-      console.error(err)
-      return { error: 'Error al iniciar sesión. Intentá de nuevo.' }
-    }
+  // Sign-in via Google Identity Services → Firebase Credential
+  // Bypasea completamente el handler de Firebase
+  function signInWithGIS(): Promise<{ error?: string }> {
+    return new Promise((resolve) => {
+      if (typeof window === 'undefined' || !(window as any).google) {
+        resolve({ error: 'Google no disponible. Recargá la página.' })
+        return
+      }
+      const client = (window as any).google.accounts.oauth2.initTokenClient({
+        client_id: GOOGLE_CLIENT_ID,
+        scope: 'email profile openid',
+        callback: async (response: any) => {
+          if (response.error) {
+            resolve({ error: response.error })
+            return
+          }
+          try {
+            const credential = GoogleAuthProvider.credential(null, response.access_token)
+            await signInWithCredential(getFirebaseAuth(), credential)
+            resolve({})
+          } catch (err: any) {
+            console.error(err)
+            resolve({ error: err.message || 'Error al iniciar sesión.' })
+          }
+        },
+      })
+      client.requestAccessToken()
+    })
   }
 
   async function signOut() {
-    await firebaseSignOut(auth)
+    await firebaseSignOut(getFirebaseAuth())
     setProfile(null)
   }
 
@@ -97,5 +88,10 @@ export function useAuth() {
     }
   }
 
-  return { user, profile, loading, isAdmin, isCustomer, signInWithGoogle, signInCustomer, signOut, refreshProfile }
+  return {
+    user, profile, loading, isAdmin, isCustomer,
+    signInWithGoogle: signInWithGIS,
+    signInCustomer: signInWithGIS,
+    signOut, refreshProfile,
+  }
 }

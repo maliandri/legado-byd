@@ -22,6 +22,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" suppressHydrationWarning>
+      <head>
+        <script src="https://accounts.google.com/gsi/client" async defer />
+      </head>
       <body>
         <CartProvider>
           {children}
