@@ -21,7 +21,8 @@ export function useAuth() {
   const [profile, setProfile] = useState<Usuario | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL
+  const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || process.env.NEXT_PUBLIC_ADMIN_EMAIL || '')
+    .split(',').map(e => e.trim()).filter(Boolean)
   const auth = getFirebaseAuth()
 
   useEffect(() => {
@@ -29,7 +30,7 @@ export function useAuth() {
     getRedirectResult(auth, browserPopupRedirectResolver).then(async (result) => {
       if (result?.user) {
         const u = result.user
-        if (u.email !== adminEmail) {
+        if (!adminEmails.includes(u.email ?? "")) {
           // Cliente: crear perfil si no existe
           let userProfile = await getUsuario(u.uid)
           if (!userProfile) {
@@ -44,7 +45,7 @@ export function useAuth() {
 
     const unsubscribe = onAuthStateChanged(auth, async (u) => {
       setUser(u)
-      if (u && u.email !== adminEmail) {
+      if (u && !adminEmails.includes(u.email ?? "")) {
         let userProfile = await getUsuario(u.uid)
         if (!userProfile) {
           await createUsuario(u.uid, {
@@ -60,9 +61,9 @@ export function useAuth() {
       setLoading(false)
     })
     return unsubscribe
-  }, [adminEmail])
+  }, [])
 
-  const isAdmin = user?.email === adminEmail
+  const isAdmin = adminEmails.includes(user?.email ?? "")
   const isCustomer = !!user && !isAdmin
 
   async function signInWithGoogle(): Promise<{ error?: string }> {
