@@ -121,6 +121,8 @@ export default function ProductForm({ producto, categorias, onClose, onSaved }: 
         }
       }
 
+      // Esperar a que Firestore propague antes de refrescar
+      await new Promise((r) => setTimeout(r, 800))
       onSaved()
       onClose()
     } catch (err) {
