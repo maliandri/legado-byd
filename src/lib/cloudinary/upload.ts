@@ -1,29 +1,42 @@
-import { v2 as cloudinary } from 'cloudinary'
+import crypto from 'crypto'
 
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-})
+const CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME!
+const API_KEY = process.env.CLOUDINARY_API_KEY!
+const API_SECRET = process.env.CLOUDINARY_API_SECRET!
+
+function sign(params: Record<string, string>): string {
+  const sorted = Object.keys(params)
+    .sort()
+    .map((k) => `${k}=${params[k]}`)
+    .join('&')
+  return crypto.createHash('sha256').update(sorted + API_SECRET).digest('hex')
+}
 
 export async function uploadToCloudinary(
   buffer: Buffer,
   filename: string
 ): Promise<{ url: string; public_id: string }> {
-  return new Promise((resolve, reject) => {
-    cloudinary.uploader
-      .upload_stream(
-        {
-          folder: 'legado-productos',
-          public_id: filename.replace(/\.[^/.]+$/, ''),
-          overwrite: true,
-          transformation: [{ width: 800, height: 800, crop: 'limit', quality: 'auto' }],
-        },
-        (error, result) => {
-          if (error || !result) return reject(error)
-          resolve({ url: result.secure_url, public_id: result.public_id })
-        }
-      )
-      .end(buffer)
-  })
+  const timestamp = String(Math.floor(Date.now() / 1000))
+  const folder = 'legado-productos'
+  const public_id = filename.replace(/\.[^/.]+$/, '')
+
+  const signature = sign({ folder, public_id, timestamp })
+
+  const fd = new FormData()
+  fd.append('file', new Blob([buffer]))
+  fd.append('api_key', API_KEY)
+  fd.append('timestamp', timestamp)
+  fd.append('signature', signature)
+  fd.append('folder', folder)
+  fd.append('public_id', public_id)
+
+  const res = await fetch(
+    `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+    { method: 'POST', body: fd }
+  )
+
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error?.message || `Cloudinary ${res.status}`)
+
+  return { url: data.secure_url, public_id: data.public_id }
 }
