@@ -2,6 +2,7 @@
 
 import { MessageCircle, Tag, ShoppingCart, Heart } from 'lucide-react'
 import Image from 'next/image'
+import Link from 'next/link'
 import type { Producto } from '@/types'
 import { useCart } from '@/context/CartContext'
 import { useAuth } from '@/hooks/useAuth'
@@ -63,32 +64,31 @@ export default function ProductCard({ producto }: Props) {
       }}
     >
       {/* Imagen */}
-      <div
-        className="relative overflow-hidden"
-        style={{ height: 200, backgroundColor: '#F2E6C8' }}
-      >
-        {producto.imagen ? (
-          <Image
-            src={producto.imagen}
-            alt={producto.nombre}
-            fill
-            className="object-contain group-hover:scale-105 transition-transform duration-500 p-2"
-          />
-        ) : (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-            <span style={{ fontSize: '3rem' }}>
-              {producto.categoria === 'panaderia' ? '🍞' :
-               producto.categoria === 'pasteleria' ? '🎂' : '✨'}
-            </span>
-            <span style={{ color: '#A0622A', fontSize: '0.75rem' }}>Sin imagen</span>
-          </div>
-        )}
+      <div className="relative overflow-hidden" style={{ height: 200, backgroundColor: '#F2E6C8' }}>
+        <Link href={`/producto/${producto.id}`} className="absolute inset-0 z-0">
+          {producto.imagen ? (
+            <Image
+              src={producto.imagen}
+              alt={producto.nombre}
+              fill
+              className="object-contain group-hover:scale-105 transition-transform duration-500 p-2"
+            />
+          ) : (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+              <span style={{ fontSize: '3rem' }}>
+                {producto.categoria === 'panaderia' ? '🍞' :
+                 producto.categoria === 'pasteleria' ? '🎂' : '✨'}
+              </span>
+              <span style={{ color: '#A0622A', fontSize: '0.75rem' }}>Sin imagen</span>
+            </div>
+          )}
+        </Link>
 
         {/* Botón favorito */}
         <button
           onClick={handleFavorito}
           disabled={toggling}
-          className="absolute top-3 left-3 p-1.5 rounded-full transition-all hover:scale-110"
+          className="absolute top-3 left-3 z-10 p-1.5 rounded-full transition-all hover:scale-110"
           style={{ backgroundColor: 'rgba(253,248,238,0.85)', color: isFav ? '#C4A040' : '#A0622A' }}
           title={isFav ? 'Quitar de favoritos' : 'Guardar en favoritos'}
         >
@@ -96,7 +96,7 @@ export default function ProductCard({ producto }: Props) {
         </button>
 
         {/* Badge stock */}
-        <div className="absolute top-3 right-3">
+        <div className="absolute top-3 right-3 z-10">
           <span
             className="px-2 py-1 rounded-sm text-xs font-semibold"
             style={
