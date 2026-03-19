@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { X, Upload, Loader2 } from 'lucide-react'
 import { createProducto, updateProducto } from '@/lib/firebase/firestore'
 import type { Producto, Categoria } from '@/types'
@@ -47,12 +47,26 @@ export default function ProductForm({ producto, categorias, onClose, onSaved }: 
   const [error, setError] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
 
-  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0]
-    if (!f) return
+  function applyFile(f: File) {
     setFile(f)
     setPreview(URL.createObjectURL(f))
   }
+
+  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0]
+    if (f) applyFile(f)
+  }
+
+  useEffect(() => {
+    function handlePaste(e: ClipboardEvent) {
+      const item = Array.from(e.clipboardData?.items || []).find(i => i.type.startsWith('image/'))
+      if (!item) return
+      const f = item.getAsFile()
+      if (f) applyFile(f)
+    }
+    window.addEventListener('paste', handlePaste)
+    return () => window.removeEventListener('paste', handlePaste)
+  }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -239,7 +253,7 @@ export default function ProductForm({ producto, categorias, onClose, onSaved }: 
                 <>
                   <Upload size={24} style={{ color: '#A0622A' }} />
                   <span style={{ color: '#6B3A1A', fontSize: '0.85rem' }}>
-                    Clic para subir imagen
+                    Clic para subir o pegá con Ctrl+V
                   </span>
                 </>
               )}
