@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import {
   onAuthStateChanged,
-  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   GoogleAuthProvider,
   signOut as firebaseSignOut,
   User,
@@ -22,6 +23,23 @@ export function useAuth() {
   const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL
 
   useEffect(() => {
+    // Manejar resultado del redirect de Google
+    getRedirectResult(auth).then(async (result) => {
+      if (result?.user) {
+        const u = result.user
+        if (u.email !== adminEmail) {
+          // Cliente: crear perfil si no existe
+          let userProfile = await getUsuario(u.uid)
+          if (!userProfile) {
+            await createUsuario(u.uid, {
+              email: u.email ?? '',
+              nombre: u.displayName ?? u.email?.split('@')[0] ?? 'Cliente',
+            })
+          }
+        }
+      }
+    }).catch(console.error)
+
     const unsubscribe = onAuthStateChanged(auth, async (u) => {
       setUser(u)
       if (u && u.email !== adminEmail) {
@@ -47,11 +65,7 @@ export function useAuth() {
 
   async function signInWithGoogle(): Promise<{ error?: string }> {
     try {
-      const result = await signInWithPopup(auth, provider)
-      if (result.user.email !== adminEmail) {
-        await firebaseSignOut(auth)
-        return { error: 'Email no autorizado para acceder al panel de administración.' }
-      }
+      await signInWithRedirect(auth, provider)
       return {}
     } catch (err) {
       console.error(err)
@@ -61,7 +75,7 @@ export function useAuth() {
 
   async function signInCustomer(): Promise<{ error?: string }> {
     try {
-      await signInWithPopup(auth, provider)
+      await signInWithRedirect(auth, provider)
       return {}
     } catch (err) {
       console.error(err)
