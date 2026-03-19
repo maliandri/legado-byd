@@ -1,4 +1,4 @@
-import crypto from 'crypto'
+import { createHash } from 'node:crypto'
 
 const CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME!
 const API_KEY = process.env.CLOUDINARY_API_KEY!
@@ -9,7 +9,7 @@ function sign(params: Record<string, string>): string {
     .sort()
     .map((k) => `${k}=${params[k]}`)
     .join('&')
-  return crypto.createHash('sha1').update(sorted + API_SECRET).digest('hex')
+  return createHash('sha1').update(sorted + API_SECRET).digest('hex')
 }
 
 export async function uploadToCloudinary(
