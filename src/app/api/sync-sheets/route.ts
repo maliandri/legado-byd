@@ -20,13 +20,16 @@ export async function POST() {
     if (!SHEET_ID) throw new Error('GOOGLE_SHEET_ID no configurada')
 
     const serviceAccount = JSON.parse(serviceAccountKey)
-    // Netlify escapa los \n del private_key — hay que restaurarlos
-    if (serviceAccount.private_key) {
-      serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n')
-    }
 
-    const auth = new google.auth.GoogleAuth({
-      credentials: serviceAccount,
+    // Normalizar private_key: Netlify puede entregar literal \n o newlines reales
+    const privateKey = (serviceAccount.private_key as string)
+      .replace(/\\n/g, '\n')
+      .replace(/\r\n/g, '\n')
+      .trim()
+
+    const auth = new google.auth.JWT({
+      email: serviceAccount.client_email,
+      key: privateKey,
       scopes: ['https://www.googleapis.com/auth/spreadsheets'],
     })
 
