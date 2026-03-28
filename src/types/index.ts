@@ -6,6 +6,10 @@ export interface Producto {
   categoria: string // slug de categoría
   stock: number  // cantidad en stock (0 = sin stock)
   imagen: string // URL de Cloudinary
+  subfamilia?: string
+  marca?: string
+  iva?: number       // porcentaje: 10.5 | 21
+  costo?: number
   createdAt: Date
   updatedAt: Date
 }

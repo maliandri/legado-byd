@@ -11,7 +11,7 @@ import {
   updateCategoria,
   deleteCategoria,
 } from '@/lib/firebase/firestore'
-import { LogOut, ShoppingBag, LayoutGrid, RefreshCw, Plus, Pencil, Trash2 } from 'lucide-react'
+import { LogOut, ShoppingBag, LayoutGrid, RefreshCw, Plus, Pencil, Trash2, FileSpreadsheet } from 'lucide-react'
 import type { Categoria } from '@/types'
 import { useEffect } from 'react'
 
@@ -32,6 +32,24 @@ function AdminPanel() {
   const [loadingCats, setLoadingCats] = useState(true)
 
   const { productos, loading: loadingProds, refresh } = useProducts()
+  const [syncingSheets, setSyncingSheets] = useState(false)
+  const [syncMsg, setSyncMsg] = useState('')
+
+  async function handleSyncSheets() {
+    setSyncingSheets(true)
+    setSyncMsg('')
+    try {
+      const res = await fetch('/api/sync-sheets', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Error desconocido')
+      setSyncMsg(`✓ ${data.filas} productos sincronizados`)
+    } catch (err: any) {
+      setSyncMsg(`✗ ${err.message}`)
+    } finally {
+      setSyncingSheets(false)
+      setTimeout(() => setSyncMsg(''), 5000)
+    }
+  }
 
   const fetchCategorias = useCallback(async () => {
     setLoadingCats(true)
@@ -120,11 +138,38 @@ function AdminPanel() {
               <p style={{ color: '#6B3A1A' }}>Cargando productos...</p>
             </div>
           ) : (
-            <ProductTable
-              productos={productos}
-              categorias={categorias}
-              onRefresh={refresh}
-            />
+            <>
+              <div className="flex items-center justify-end gap-3 mb-4">
+                {syncMsg && (
+                  <span
+                    className="text-sm px-3 py-1.5 rounded-sm"
+                    style={{
+                      backgroundColor: syncMsg.startsWith('✓') ? '#C8DEC8' : '#F5CAAA',
+                      color: '#3D1A05',
+                    }}
+                  >
+                    {syncMsg}
+                  </span>
+                )}
+                <button
+                  onClick={handleSyncSheets}
+                  disabled={syncingSheets}
+                  className="flex items-center gap-2 px-4 py-2 rounded-sm text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-50"
+                  style={{ backgroundColor: '#4A5E1A', color: '#F2E6C8' }}
+                >
+                  {syncingSheets
+                    ? <RefreshCw size={14} className="animate-spin" />
+                    : <FileSpreadsheet size={14} />
+                  }
+                  {syncingSheets ? 'Sincronizando...' : 'Sincronizar Sheets'}
+                </button>
+              </div>
+              <ProductTable
+                productos={productos}
+                categorias={categorias}
+                onRefresh={refresh}
+              />
+            </>
           )
         )}
 

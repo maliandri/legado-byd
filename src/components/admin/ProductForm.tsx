@@ -12,15 +12,6 @@ interface Props {
   onSaved: () => void
 }
 
-const defaultForm = {
-  nombre: '',
-  descripcion: '',
-  precio: '',
-  categoria: 'panaderia',
-  stock: '0',
-  imagen: '',
-}
-
 async function uploadViaApi(file: File): Promise<string> {
   const fd = new FormData()
   fd.append('file', file)
@@ -40,6 +31,10 @@ export default function ProductForm({ producto, categorias, onClose, onSaved }: 
     categoria: producto?.categoria || categorias[0]?.slug || 'panaderia',
     stock: typeof producto?.stock === 'boolean' ? (producto.stock ? '1' : '0') : (producto?.stock?.toString() ?? '0'),
     imagen: producto?.imagen || '',
+    subfamilia: producto?.subfamilia || '',
+    marca: producto?.marca || '',
+    iva: producto?.iva?.toString() || '',
+    costo: producto?.costo?.toString() || '',
   })
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState(producto?.imagen || '')
@@ -105,6 +100,10 @@ export default function ProductForm({ producto, categorias, onClose, onSaved }: 
         categoria: form.categoria,
         stock: Number(form.stock),
         imagen: form.imagen,
+        subfamilia: form.subfamilia.trim() || undefined,
+        marca: form.marca.trim() || undefined,
+        iva: form.iva ? Number(form.iva) : undefined,
+        costo: form.costo ? Number(form.costo) : undefined,
       }
 
       if (isEdit && producto) {
@@ -269,6 +268,56 @@ export default function ProductForm({ producto, categorias, onClose, onSaved }: 
               onChange={(e) => setForm({ ...form, stock: e.target.value })}
               placeholder="0"
             />
+          </div>
+
+          {/* Marca y Subfamilia */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label style={labelStyle}>Marca</label>
+              <input
+                style={inputStyle}
+                value={form.marca}
+                onChange={(e) => setForm({ ...form, marca: e.target.value })}
+                placeholder="Ej: Pureza"
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>Sub Familia</label>
+              <input
+                style={inputStyle}
+                value={form.subfamilia}
+                onChange={(e) => setForm({ ...form, subfamilia: e.target.value })}
+                placeholder="Ej: Harinas"
+              />
+            </div>
+          </div>
+
+          {/* Costo e IVA */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label style={labelStyle}>Costo (ARS)</label>
+              <input
+                style={inputStyle}
+                type="number"
+                min="0"
+                step="0.01"
+                value={form.costo}
+                onChange={(e) => setForm({ ...form, costo: e.target.value })}
+                placeholder="0.00"
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>IVA (%)</label>
+              <select
+                style={inputStyle}
+                value={form.iva}
+                onChange={(e) => setForm({ ...form, iva: e.target.value })}
+              >
+                <option value="">Sin especificar</option>
+                <option value="10.5">10.5%</option>
+                <option value="21">21%</option>
+              </select>
+            </div>
           </div>
 
           {/* Imagen */}
