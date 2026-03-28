@@ -33,6 +33,7 @@ function AdminPanel() {
 
   const { productos, loading: loadingProds, refresh } = useProducts()
   const [syncingSheets, setSyncingSheets] = useState(false)
+  const [importingSheets, setImportingSheets] = useState(false)
   const [syncMsg, setSyncMsg] = useState('')
 
   async function handleSyncSheets() {
@@ -42,12 +43,30 @@ function AdminPanel() {
       const res = await fetch('/api/sync-sheets', { method: 'POST' })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Error desconocido')
-      setSyncMsg(`✓ ${data.filas} productos sincronizados`)
+      setSyncMsg(`✓ ${data.filas} productos exportados al Sheet`)
     } catch (err: any) {
       setSyncMsg(`✗ ${err.message}`)
     } finally {
       setSyncingSheets(false)
       setTimeout(() => setSyncMsg(''), 5000)
+    }
+  }
+
+  async function handleImportSheets() {
+    if (!confirm('¿Importar datos del Sheet a Firestore? Esto sobreescribe categoria, marca, subfamilia, precio, IVA y costo de cada producto.')) return
+    setImportingSheets(true)
+    setSyncMsg('')
+    try {
+      const res = await fetch('/api/import-sheets', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Error desconocido')
+      setSyncMsg(`✓ ${data.actualizados} actualizados${data.noEncontrados ? ` · ${data.noEncontrados} no encontrados` : ''}`)
+      refresh()
+    } catch (err: any) {
+      setSyncMsg(`✗ ${err.message}`)
+    } finally {
+      setImportingSheets(false)
+      setTimeout(() => setSyncMsg(''), 6000)
     }
   }
 
@@ -152,6 +171,18 @@ function AdminPanel() {
                   </span>
                 )}
                 <button
+                  onClick={handleImportSheets}
+                  disabled={importingSheets}
+                  className="flex items-center gap-2 px-4 py-2 rounded-sm text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-50"
+                  style={{ backgroundColor: '#C4A040', color: '#3D1A05' }}
+                >
+                  {importingSheets
+                    ? <RefreshCw size={14} className="animate-spin" />
+                    : <FileSpreadsheet size={14} />
+                  }
+                  {importingSheets ? 'Importando...' : 'Importar desde Sheets'}
+                </button>
+                <button
                   onClick={handleSyncSheets}
                   disabled={syncingSheets}
                   className="flex items-center gap-2 px-4 py-2 rounded-sm text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-50"
@@ -161,7 +192,7 @@ function AdminPanel() {
                     ? <RefreshCw size={14} className="animate-spin" />
                     : <FileSpreadsheet size={14} />
                   }
-                  {syncingSheets ? 'Sincronizando...' : 'Sincronizar Sheets'}
+                  {syncingSheets ? 'Exportando...' : 'Exportar a Sheets'}
                 </button>
               </div>
               <ProductTable
