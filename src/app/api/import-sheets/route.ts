@@ -11,7 +11,8 @@ const FIRESTORE_BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_I
 function parseNum(val: any): number | undefined {
   if (val === '' || val == null) return undefined
   if (typeof val === 'number') return val
-  const cleaned = String(val).replace(/[$\s.]/g, '').replace(',', '.')
+  // Formato: coma = miles, punto = decimal  →  $131,220.00 → 131220
+  const cleaned = String(val).replace(/[$\s]/g, '').replace(/,/g, '')
   const n = parseFloat(cleaned)
   return isNaN(n) ? undefined : n
 }
