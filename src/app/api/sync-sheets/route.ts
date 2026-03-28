@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic'
 
 const SHEET_ID = process.env.GOOGLE_SHEET_ID!
 const PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID!
-const RANGE = 'Hoja 1!A1'
+const RANGE = 'backup!A1'
 
 function pct(value: number): string {
   return value.toFixed(2) + '%'
@@ -90,7 +90,7 @@ export async function POST() {
     // ── Limpiar hoja y escribir ───────────────────────────────────────────
     await sheets.spreadsheets.values.clear({
       spreadsheetId: SHEET_ID,
-      range: 'Hoja 1',
+      range: 'backup',
     })
 
     await sheets.spreadsheets.values.update({

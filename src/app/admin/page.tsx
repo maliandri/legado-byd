@@ -43,7 +43,7 @@ function AdminPanel() {
       const res = await fetch('/api/sync-sheets', { method: 'POST' })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Error desconocido')
-      setSyncMsg(`✓ ${data.filas} productos exportados al Sheet`)
+      setSyncMsg(`✓ Backup guardado — ${data.filas} productos`)
     } catch (err: any) {
       setSyncMsg(`✗ ${err.message}`)
     } finally {
@@ -53,14 +53,14 @@ function AdminPanel() {
   }
 
   async function handleImportSheets() {
-    if (!confirm('¿Importar datos del Sheet a Firestore? Esto sobreescribe categoria, marca, subfamilia, precio, IVA y costo de cada producto.')) return
+    if (!confirm('¿Publicar hoja "publico" a Firestore? Esto sobreescribe categoria, marca, subfamilia, precio, IVA y costo de cada producto.')) return
     setImportingSheets(true)
     setSyncMsg('')
     try {
       const res = await fetch('/api/import-sheets', { method: 'POST' })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Error desconocido')
-      setSyncMsg(`✓ ${data.actualizados} actualizados${data.noEncontrados ? ` · ${data.noEncontrados} no encontrados` : ''}`)
+      setSyncMsg(`✓ ${data.actualizados} publicados${data.noEncontrados ? ` · ${data.noEncontrados} no encontrados en Firestore` : ''}`)
       refresh()
     } catch (err: any) {
       setSyncMsg(`✗ ${err.message}`)
@@ -180,7 +180,7 @@ function AdminPanel() {
                     ? <RefreshCw size={14} className="animate-spin" />
                     : <FileSpreadsheet size={14} />
                   }
-                  {importingSheets ? 'Importando...' : 'Importar desde Sheets'}
+                  {importingSheets ? 'Publicando...' : 'Publicar (Sheet → Firestore)'}
                 </button>
                 <button
                   onClick={handleSyncSheets}
@@ -192,7 +192,7 @@ function AdminPanel() {
                     ? <RefreshCw size={14} className="animate-spin" />
                     : <FileSpreadsheet size={14} />
                   }
-                  {syncingSheets ? 'Exportando...' : 'Exportar a Sheets'}
+                  {syncingSheets ? 'Guardando backup...' : 'Backup (Firestore → Sheet)'}
                 </button>
               </div>
               <ProductTable

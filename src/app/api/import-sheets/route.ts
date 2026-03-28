@@ -50,7 +50,7 @@ export async function POST() {
     const sheets = google.sheets({ version: 'v4', auth })
     const sheetRes = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID,
-      range: 'Hoja 1!A2:J2000',
+      range: 'publico!A2:J2000',
     })
     const rows = sheetRes.data.values ?? []
     if (rows.length === 0) return NextResponse.json({ ok: true, actualizados: 0 })
