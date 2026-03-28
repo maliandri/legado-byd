@@ -18,9 +18,11 @@ function getAdminApp(): App {
   }
 
   const serviceAccount = JSON.parse(serviceAccountKey)
-  if (serviceAccount.private_key) {
-    serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n')
-  }
+
+  // FIREBASE_PRIVATE_KEY como var separada evita que Netlify corrompa el PEM
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY
+    || serviceAccount.private_key
+  serviceAccount.private_key = privateKey.replace(/\\n/g, '\n')
 
   adminApp = initializeApp({
     credential: cert(serviceAccount),
