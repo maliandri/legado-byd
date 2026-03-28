@@ -34,7 +34,26 @@ function AdminPanel() {
   const { productos, loading: loadingProds, refresh } = useProducts()
   const [syncingSheets, setSyncingSheets] = useState(false)
   const [importingSheets, setImportingSheets] = useState(false)
+  const [generatingDesc, setGeneratingDesc] = useState(false)
   const [syncMsg, setSyncMsg] = useState('')
+
+  async function handleGenerarDescripciones() {
+    if (!confirm('¿Generar descripciones con IA para todos los productos sin descripción?')) return
+    setGeneratingDesc(true)
+    setSyncMsg('')
+    try {
+      const res = await fetch('/api/gemini-bulk', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Error desconocido')
+      setSyncMsg(data.generados === 0 ? `✓ ${data.mensaje}` : `✓ ${data.generados} descripciones generadas`)
+      refresh()
+    } catch (err: any) {
+      setSyncMsg(`✗ ${err.message}`)
+    } finally {
+      setGeneratingDesc(false)
+      setTimeout(() => setSyncMsg(''), 6000)
+    }
+  }
 
   async function handleSyncSheets() {
     setSyncingSheets(true)
@@ -181,6 +200,15 @@ function AdminPanel() {
                     {syncMsg}
                   </span>
                 )}
+                <button
+                  onClick={handleGenerarDescripciones}
+                  disabled={generatingDesc}
+                  className="flex items-center gap-2 px-4 py-2 rounded-sm text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-50"
+                  style={{ backgroundColor: '#6B3A1A', color: '#F2E6C8' }}
+                >
+                  {generatingDesc ? <RefreshCw size={14} className="animate-spin" /> : <span style={{ fontSize: '12px' }}>✦</span>}
+                  {generatingDesc ? 'Generando...' : 'Generar descripciones IA'}
+                </button>
                 <button
                   onClick={() => handleImportSheets(true)}
                   disabled={importingSheets}
