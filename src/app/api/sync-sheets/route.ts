@@ -1,61 +1,82 @@
 import { NextResponse } from 'next/server'
 import { google } from 'googleapis'
-import { adminDb } from '@/lib/firebase/admin'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 const SHEET_ID = process.env.GOOGLE_SHEET_ID!
+const PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID!
 const RANGE = 'Hoja 1!A1'
 
 function pct(value: number): string {
   return value.toFixed(2) + '%'
 }
 
+// Extrae un valor de un campo Firestore REST
+function fval(field: any): any {
+  if (!field) return ''
+  if ('stringValue' in field) return field.stringValue
+  if ('integerValue' in field) return Number(field.integerValue)
+  if ('doubleValue' in field) return Number(field.doubleValue)
+  if ('booleanValue' in field) return field.booleanValue
+  if ('nullValue' in field) return ''
+  return ''
+}
+
 export async function POST() {
   try {
-    // ── Auth con service account ──────────────────────────────────────────
-    const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY
-    if (!serviceAccountKey) throw new Error('FIREBASE_SERVICE_ACCOUNT_KEY no configurada')
     if (!SHEET_ID) throw new Error('GOOGLE_SHEET_ID no configurada')
+    if (!PROJECT_ID) throw new Error('NEXT_PUBLIC_FIREBASE_PROJECT_ID no configurada')
 
-    const serviceAccount = JSON.parse(serviceAccountKey)
+    // ── Auth Google Sheets con FIREBASE_PRIVATE_KEY separada ─────────────
+    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL
+    const privateKeyRaw = process.env.FIREBASE_PRIVATE_KEY
+    if (!clientEmail) throw new Error('FIREBASE_CLIENT_EMAIL no configurada')
+    if (!privateKeyRaw) throw new Error('FIREBASE_PRIVATE_KEY no configurada')
 
-    // Normalizar private_key: Netlify puede entregar literal \n o newlines reales
-    const privateKey = (serviceAccount.private_key as string)
-      .replace(/\\n/g, '\n')
-      .replace(/\r\n/g, '\n')
-      .trim()
+    const privateKey = privateKeyRaw.replace(/\\n/g, '\n')
 
     const auth = new google.auth.JWT({
-      email: serviceAccount.client_email,
+      email: clientEmail,
       key: privateKey,
       scopes: ['https://www.googleapis.com/auth/spreadsheets'],
     })
 
     const sheets = google.sheets({ version: 'v4', auth })
 
-    // ── Leer productos desde Firestore (Admin SDK) ────────────────────────
-    const snap = await adminDb().collection('productos').orderBy('nombre').get()
+    // ── Leer productos via Firestore REST API (pública, no requiere auth) ─
+    const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/productos?pageSize=500`
+    const res = await fetch(url)
+    if (!res.ok) throw new Error(`Firestore REST error ${res.status}`)
+    const json = await res.json()
+
+    const docs: any[] = json.documents ?? []
+
+    // Ordenar por nombre
+    docs.sort((a, b) => {
+      const na = fval(a.fields?.nombre) as string
+      const nb = fval(b.fields?.nombre) as string
+      return na.localeCompare(nb, 'es')
+    })
 
     // ── Construir filas ───────────────────────────────────────────────────
     const header = ['PRODS LEGADO', 'FLIA PROD', 'SUB FAMILIA', 'MARCA', 'PVP', 'IVA', 'COSTO', 'MARGEN', 'MARKUP', 'STOCK']
 
-    const rows = snap.docs.map((d) => {
-      const p = d.data()
-      const pvp: number = p.precio ?? 0
-      const costo: number = p.costo ?? 0
-      const stock: number = p.stock ?? 0
+    const rows = docs.map((d) => {
+      const f = d.fields ?? {}
+      const pvp = Number(fval(f.precio)) || 0
+      const costo = Number(fval(f.costo)) || 0
+      const stock = Number(fval(f.stock)) || 0
       const margen = pvp > 0 && costo > 0 ? ((pvp - costo) / pvp) * 100 : 0
       const markup = costo > 0 ? ((pvp - costo) / costo) * 100 : 0
 
       return [
-        p.nombre ?? '',
-        p.categoria ?? '',
-        p.subfamilia ?? '',
-        p.marca ?? '',
+        fval(f.nombre),
+        fval(f.categoria),
+        fval(f.subfamilia),
+        fval(f.marca),
         pvp,
-        p.iva ?? '',
+        fval(f.iva),
         costo > 0 ? costo : '',
         costo > 0 ? pct(margen) : '',
         costo > 0 ? pct(markup) : '',
