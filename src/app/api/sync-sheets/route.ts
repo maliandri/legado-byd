@@ -20,6 +20,10 @@ export async function POST() {
     if (!SHEET_ID) throw new Error('GOOGLE_SHEET_ID no configurada')
 
     const serviceAccount = JSON.parse(serviceAccountKey)
+    // Netlify escapa los \n del private_key — hay que restaurarlos
+    if (serviceAccount.private_key) {
+      serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n')
+    }
 
     const auth = new google.auth.GoogleAuth({
       credentials: serviceAccount,
