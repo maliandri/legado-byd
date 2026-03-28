@@ -34,7 +34,8 @@ export async function POST() {
     if (!clientEmail) throw new Error('FIREBASE_CLIENT_EMAIL no configurada')
     if (!privateKeyRaw) throw new Error('FIREBASE_PRIVATE_KEY no configurada')
 
-    const privateKey = privateKeyRaw.replace(/\\n/g, '\n')
+    // FIREBASE_PRIVATE_KEY se guarda en base64 para evitar corrupción de Netlify
+    const privateKey = Buffer.from(privateKeyRaw, 'base64').toString('utf8')
 
     const auth = new google.auth.JWT({
       email: clientEmail,
