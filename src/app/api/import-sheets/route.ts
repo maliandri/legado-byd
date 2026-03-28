@@ -8,7 +8,6 @@ const SHEET_ID = process.env.GOOGLE_SHEET_ID!
 const PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID!
 const FIRESTORE_BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`
 
-// Parsea "$72.300,00" o "72300.00" o 72300 → number
 function parseNum(val: any): number | undefined {
   if (val === '' || val == null) return undefined
   if (typeof val === 'number') return val
@@ -17,7 +16,6 @@ function parseNum(val: any): number | undefined {
   return isNaN(n) ? undefined : n
 }
 
-// Normaliza para comparación: minúsculas, sin tildes, espacios simples
 function norm(s: string): string {
   return s.toLowerCase().trim()
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -32,8 +30,10 @@ function fval(field: any): any {
   return undefined
 }
 
-export async function POST() {
+export async function POST(req: Request) {
   try {
+    const { reset } = await req.json().catch(() => ({ reset: false }))
+
     if (!SHEET_ID) throw new Error('GOOGLE_SHEET_ID no configurada')
     if (!PROJECT_ID) throw new Error('NEXT_PUBLIC_FIREBASE_PROJECT_ID no configurada')
 
@@ -53,34 +53,86 @@ export async function POST() {
       ],
     })
 
-    // ── 1. Leer Sheet (sin la fila de header) ─────────────────────────────
+    // ── 1. Leer Sheet ─────────────────────────────────────────────────────
     const sheets = google.sheets({ version: 'v4', auth })
     const sheetRes = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID,
       range: 'publico!A2:J2000',
     })
-    const rows = sheetRes.data.values ?? []
-    if (rows.length === 0) return NextResponse.json({ ok: true, actualizados: 0 })
+    const rows = (sheetRes.data.values ?? []).filter(r => r[0]?.toString().trim())
+    if (rows.length === 0) return NextResponse.json({ ok: true, creados: 0, actualizados: 0 })
 
-    // ── 2. Traer todos los productos de Firestore (REST, público) ──────────
-    const fsRes = await fetch(
-      `${FIRESTORE_BASE}/productos?pageSize=500`,
-    )
+    const { token } = await auth.getAccessToken()
+    if (!token) throw new Error('No se pudo obtener token de acceso')
+
+    const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+
+    // ── 2. MODO RESET: borrar toda la colección y recrear ─────────────────
+    if (reset) {
+      const fsRes = await fetch(`${FIRESTORE_BASE}/productos?pageSize=500`)
+      if (!fsRes.ok) throw new Error(`Firestore GET error ${fsRes.status}`)
+      const fsJson = await fsRes.json()
+
+      // Borrar todos los docs existentes
+      for (const doc of fsJson.documents ?? []) {
+        await fetch(`https://firestore.googleapis.com/v1/${doc.name}`, {
+          method: 'DELETE',
+          headers,
+        })
+      }
+
+      // Crear productos desde el Sheet
+      let creados = 0
+      const now = new Date().toISOString()
+
+      for (const row of rows) {
+        const nombre = row[0]?.toString().trim()
+        if (!nombre) continue
+
+        const categoria  = row[1]?.toString().trim() || 'general'
+        const subfamilia = row[2]?.toString().trim() || ''
+        const marca      = row[3]?.toString().trim() || ''
+        const precio     = parseNum(row[4]) ?? 0
+        const iva        = parseNum(row[5])
+        const costo      = parseNum(row[6])
+
+        const fields: Record<string, any> = {
+          nombre:      { stringValue: nombre },
+          categoria:   { stringValue: categoria },
+          subfamilia:  { stringValue: subfamilia },
+          marca:       { stringValue: marca },
+          precio:      { doubleValue: precio },
+          stock:       { integerValue: 0 },
+          imagen:      { stringValue: '' },
+          descripcion: { stringValue: '' },
+          createdAt:   { timestampValue: now },
+          updatedAt:   { timestampValue: now },
+        }
+        if (iva    !== undefined) fields.iva   = { doubleValue: iva }
+        if (costo  !== undefined) fields.costo = { doubleValue: costo }
+
+        const postRes = await fetch(`${FIRESTORE_BASE}/productos`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ fields }),
+        })
+        if (postRes.ok) creados++
+      }
+
+      return NextResponse.json({ ok: true, creados, actualizados: 0 })
+    }
+
+    // ── 3. MODO NORMAL: actualizar por nombre ─────────────────────────────
+    const fsRes = await fetch(`${FIRESTORE_BASE}/productos?pageSize=500`)
     if (!fsRes.ok) throw new Error(`Firestore GET error ${fsRes.status}`)
     const fsJson = await fsRes.json()
 
-    // Mapa nombre normalizado → docId
     const docMap = new Map<string, string>()
     for (const doc of fsJson.documents ?? []) {
       const nombre = fval(doc.fields?.nombre)
       if (nombre) docMap.set(norm(String(nombre)), doc.name.split('/').pop())
     }
 
-    // ── 3. Obtener token para escribir en Firestore ────────────────────────
-    const { token } = await auth.getAccessToken()
-    if (!token) throw new Error('No se pudo obtener token de acceso')
-
-    // ── 4. Actualizar cada producto en Firestore ───────────────────────────
     let actualizados = 0
     const noEncontrados: string[] = []
 
@@ -88,7 +140,6 @@ export async function POST() {
       const nombre = row[0]?.toString().trim()
       if (!nombre) continue
 
-      // Columnas: A=nombre B=categoria C=subfamilia D=marca E=precio F=iva G=costo
       const categoria  = row[1]?.toString().trim() || undefined
       const subfamilia = row[2]?.toString().trim() || undefined
       const marca      = row[3]?.toString().trim() || undefined
@@ -99,7 +150,6 @@ export async function POST() {
       const docId = docMap.get(norm(nombre))
       if (!docId) { noEncontrados.push(nombre); continue }
 
-      // Construir campos y máscara
       const fields: Record<string, any> = {}
       const mask: string[] = []
 
@@ -113,23 +163,17 @@ export async function POST() {
       if (mask.length === 0) continue
 
       const maskQuery = mask.map(p => `updateMask.fieldPaths=${p}`).join('&')
-      const patchRes = await fetch(
-        `${FIRESTORE_BASE}/productos/${docId}?${maskQuery}`,
-        {
-          method: 'PATCH',
-          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fields }),
-        }
-      )
-
+      const patchRes = await fetch(`${FIRESTORE_BASE}/productos/${docId}?${maskQuery}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ fields }),
+      })
       if (patchRes.ok) actualizados++
     }
 
-    if (noEncontrados.length > 0) {
-      console.log('No encontrados en Firestore:', noEncontrados)
-    }
+    if (noEncontrados.length > 0) console.log('No encontrados:', noEncontrados)
 
-    return NextResponse.json({ ok: true, actualizados, noEncontrados, totalNoEncontrados: noEncontrados.length })
+    return NextResponse.json({ ok: true, actualizados, creados: 0, noEncontrados, totalNoEncontrados: noEncontrados.length })
   } catch (err: any) {
     console.error('import-sheets error:', err)
     return NextResponse.json({ error: err.message || 'Error desconocido' }, { status: 500 })

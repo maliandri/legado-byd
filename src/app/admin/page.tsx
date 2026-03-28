@@ -52,15 +52,26 @@ function AdminPanel() {
     }
   }
 
-  async function handleImportSheets() {
-    if (!confirm('¿Publicar hoja "publico" a Firestore? Esto sobreescribe categoria, marca, subfamilia, precio, IVA y costo de cada producto.')) return
+  async function handleImportSheets(reset = false) {
+    const msg = reset
+      ? '⚠️ RESETEAR: borra TODOS los productos de Firestore y los recrea desde la hoja "publico". Las imágenes se pierden. ¿Continuar?'
+      : '¿Publicar hoja "publico" a Firestore? Actualiza categoria, marca, subfamilia, precio, IVA y costo.'
+    if (!confirm(msg)) return
     setImportingSheets(true)
     setSyncMsg('')
     try {
-      const res = await fetch('/api/import-sheets', { method: 'POST' })
+      const res = await fetch('/api/import-sheets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reset }),
+      })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Error desconocido')
-      setSyncMsg(`✓ ${data.actualizados} publicados${data.noEncontrados ? ` · ${data.noEncontrados} no encontrados en Firestore` : ''}`)
+      if (reset) {
+        setSyncMsg(`✓ ${data.creados} productos creados desde Sheet`)
+      } else {
+        setSyncMsg(`✓ ${data.actualizados} actualizados${data.totalNoEncontrados ? ` · ${data.totalNoEncontrados} no encontrados` : ''}`)
+      }
       refresh()
     } catch (err: any) {
       setSyncMsg(`✗ ${err.message}`)
@@ -171,7 +182,16 @@ function AdminPanel() {
                   </span>
                 )}
                 <button
-                  onClick={handleImportSheets}
+                  onClick={() => handleImportSheets(true)}
+                  disabled={importingSheets}
+                  className="flex items-center gap-2 px-4 py-2 rounded-sm text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-50"
+                  style={{ backgroundColor: '#A0622A', color: '#F2E6C8' }}
+                >
+                  {importingSheets ? <RefreshCw size={14} className="animate-spin" /> : <FileSpreadsheet size={14} />}
+                  Resetear y publicar
+                </button>
+                <button
+                  onClick={() => handleImportSheets(false)}
                   disabled={importingSheets}
                   className="flex items-center gap-2 px-4 py-2 rounded-sm text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-50"
                   style={{ backgroundColor: '#C4A040', color: '#3D1A05' }}
