@@ -17,6 +17,13 @@ function parseNum(val: any): number | undefined {
   return isNaN(n) ? undefined : n
 }
 
+// Normaliza para comparación: minúsculas, sin tildes, espacios simples
+function norm(s: string): string {
+  return s.toLowerCase().trim()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+}
+
 function fval(field: any): any {
   if (!field) return undefined
   if ('stringValue' in field) return field.stringValue
@@ -62,11 +69,11 @@ export async function POST() {
     if (!fsRes.ok) throw new Error(`Firestore GET error ${fsRes.status}`)
     const fsJson = await fsRes.json()
 
-    // Mapa nombre (lowercase) → docId
+    // Mapa nombre normalizado → docId
     const docMap = new Map<string, string>()
     for (const doc of fsJson.documents ?? []) {
       const nombre = fval(doc.fields?.nombre)
-      if (nombre) docMap.set(String(nombre).toLowerCase().trim(), doc.name.split('/').pop())
+      if (nombre) docMap.set(norm(String(nombre)), doc.name.split('/').pop())
     }
 
     // ── 3. Obtener token para escribir en Firestore ────────────────────────
@@ -75,7 +82,7 @@ export async function POST() {
 
     // ── 4. Actualizar cada producto en Firestore ───────────────────────────
     let actualizados = 0
-    let noEncontrados = 0
+    const noEncontrados: string[] = []
 
     for (const row of rows) {
       const nombre = row[0]?.toString().trim()
@@ -89,8 +96,8 @@ export async function POST() {
       const iva        = parseNum(row[5])
       const costo      = parseNum(row[6])
 
-      const docId = docMap.get(nombre.toLowerCase())
-      if (!docId) { noEncontrados++; continue }
+      const docId = docMap.get(norm(nombre))
+      if (!docId) { noEncontrados.push(nombre); continue }
 
       // Construir campos y máscara
       const fields: Record<string, any> = {}
@@ -118,7 +125,11 @@ export async function POST() {
       if (patchRes.ok) actualizados++
     }
 
-    return NextResponse.json({ ok: true, actualizados, noEncontrados })
+    if (noEncontrados.length > 0) {
+      console.log('No encontrados en Firestore:', noEncontrados)
+    }
+
+    return NextResponse.json({ ok: true, actualizados, noEncontrados, totalNoEncontrados: noEncontrados.length })
   } catch (err: any) {
     console.error('import-sheets error:', err)
     return NextResponse.json({ error: err.message || 'Error desconocido' }, { status: 500 })
