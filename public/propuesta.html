@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Propuesta Comercial — Legado Bazar & Deco</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #FDF8EE;
+      color: #3D1A05;
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: #3D1A05;
+      padding: 28px 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+    header .brand {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    header img {
+      height: 72px;
+      width: auto;
+      filter: brightness(0) invert(1) sepia(0.2) saturate(0.5);
+    }
+    header .brand-text {
+      color: #F2E6C8;
+    }
+    header .brand-text h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: #F2E6C8;
+    }
+    header .brand-text p {
+      font-size: 0.78rem;
+      color: #C4A040;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+    header .doc-title {
+      text-align: right;
+    }
+    header .doc-title span {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.1rem;
+      font-style: italic;
+      color: #C4A040;
+    }
+    header .doc-title small {
+      display: block;
+      font-size: 0.72rem;
+      color: #DDD0A8;
+      margin-top: 4px;
+      letter-spacing: 0.06em;
+    }
+
+    /* ── BORDE DORADO ── */
+    .gold-bar { height: 4px; background: linear-gradient(90deg, #3D1A05, #C4A040 40%, #C4A040 60%, #3D1A05); }
+
+    /* ── CONTENIDO ── */
+    main {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 48px 40px 64px;
+    }
+
+    /* ── INTRO ── */
+    .intro {
+      text-align: center;
+      margin-bottom: 48px;
+      padding-bottom: 40px;
+      border-bottom: 1.5px solid #C4A040;
+    }
+    .intro .ornament {
+      color: #C4A040;
+      font-size: 1rem;
+      letter-spacing: 12px;
+      margin-bottom: 16px;
+      display: block;
+    }
+    .intro h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2rem;
+      font-weight: 700;
+      color: #3D1A05;
+      margin-bottom: 14px;
+    }
+    .intro p {
+      font-size: 0.97rem;
+      color: #6B3A1A;
+      line-height: 1.75;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    /* ── SECCIÓN ── */
+    .section {
+      margin-bottom: 44px;
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 22px;
+    }
+    .section-number {
+      width: 38px;
+      height: 38px;
+      background: #3D1A05;
+      color: #C4A040;
+      border-radius: 50%;
+      font-family: 'Playfair Display', serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .section-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: #3D1A05;
+    }
+    .section-subtitle {
+      font-size: 0.8rem;
+      color: #C4A040;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    /* ── CARD ── */
+    .card {
+      background: #FFFBF2;
+      border: 1.5px solid #DDB85A;
+      border-radius: 10px;
+      padding: 28px 32px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 20px rgba(61,26,5,0.07);
+    }
+    .card-lead {
+      font-size: 0.88rem;
+      color: #6B3A1A;
+      line-height: 1.7;
+      margin-bottom: 20px;
+    }
+
+    /* ── FEATURE LIST ── */
+    .features {
+      list-style: none;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px 24px;
+      margin-bottom: 24px;
+    }
+    .features li {
+      font-size: 0.88rem;
+      color: #3D1A05;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      line-height: 1.5;
+    }
+    .features li::before {
+      content: '✦';
+      color: #C4A040;
+      font-size: 0.7rem;
+      margin-top: 3px;
+      flex-shrink: 0;
+    }
+
+    /* ── TABLA CUOTAS ── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    thead tr {
+      background: #3D1A05;
+    }
+    thead th {
+      color: #F2E6C8;
+      font-family: 'Playfair Display', serif;
+      font-weight: 600;
+      padding: 10px 16px;
+      text-align: left;
+      font-size: 0.85rem;
+      letter-spacing: 0.05em;
+    }
+    tbody tr {
+      border-bottom: 1px solid #EDD9A3;
+    }
+    tbody tr:last-child {
+      border-bottom: none;
+      background: #F2E6C8;
+    }
+    tbody td {
+      padding: 11px 16px;
+      color: #3D1A05;
+    }
+    tbody tr:last-child td {
+      font-weight: 600;
+      color: #3D1A05;
+    }
+    .amount {
+      font-family: 'Playfair Display', serif;
+      font-size: 1rem;
+      font-weight: 700;
+      color: #C4A040;
+    }
+    tbody tr:last-child .amount {
+      font-size: 1.1rem;
+      color: #3D1A05;
+    }
+
+    /* ── BADGE PRECIO ── */
+    .price-badge {
+      display: inline-block;
+      background: #3D1A05;
+      color: #C4A040;
+      font-family: 'Playfair Display', serif;
+      font-size: 1.6rem;
+      font-weight: 700;
+      padding: 12px 28px;
+      border-radius: 8px;
+      letter-spacing: 0.04em;
+      margin-bottom: 8px;
+    }
+    .price-badge small {
+      display: block;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.7rem;
+      color: #DDD0A8;
+      font-weight: 400;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+    .price-wrap {
+      text-align: center;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px dashed #C4A040;
+    }
+    .price-note {
+      font-size: 0.78rem;
+      color: #A0622A;
+      margin-top: 6px;
+    }
+
+    /* ── SEPARADOR ── */
+    .divider {
+      text-align: center;
+      color: #C4A040;
+      font-size: 0.75rem;
+      letter-spacing: 14px;
+      margin: 36px 0;
+      opacity: 0.7;
+    }
+
+    /* ── NOTA FINAL ── */
+    .nota {
+      background: #F2E6C8;
+      border-left: 4px solid #C4A040;
+      border-radius: 0 8px 8px 0;
+      padding: 18px 22px;
+      font-size: 0.85rem;
+      color: #6B3A1A;
+      line-height: 1.7;
+      margin-top: 20px;
+    }
+    .nota strong {
+      color: #3D1A05;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      background: #3D1A05;
+      padding: 28px 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    footer p {
+      font-size: 0.78rem;
+      color: #DDD0A8;
+      line-height: 1.6;
+    }
+    footer .footer-brand {
+      font-family: 'Playfair Display', serif;
+      font-size: 0.95rem;
+      color: #C4A040;
+      font-style: italic;
+    }
+
+    /* ── PRINT ── */
+    @media print {
+      body { background: white; }
+      .gold-bar { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      header, footer { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .card { break-inside: avoid; }
+      .section { break-inside: avoid; }
+      main { padding: 32px 24px 48px; }
+    }
+
+    @media (max-width: 600px) {
+      header { flex-direction: column; align-items: flex-start; padding: 20px 24px; }
+      main { padding: 32px 20px 48px; }
+      .features { grid-template-columns: 1fr; }
+      footer { flex-direction: column; padding: 24px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <img src="legado.png" alt="Legado Bazar &amp; Deco" />
+      <div class="brand-text">
+        <h1>LEGADO</h1>
+        <p>Bazar &amp; Deco — Neuquén</p>
+      </div>
+    </div>
+    <div class="doc-title">
+      <span>Propuesta Comercial</span>
+      <small>Marzo 2026</small>
+    </div>
+  </header>
+
+  <div class="gold-bar"></div>
+
+  <main>
+
+    <!-- ── INTRO ── -->
+    <div class="intro">
+      <span class="ornament">✦ &nbsp; ✦ &nbsp; ✦</span>
+      <h2>Plataforma Digital Integral</h2>
+      <p>
+        Presentamos una propuesta para el desarrollo y gestión continua de la
+        presencia digital de <strong>Legado Bazar &amp; Deco</strong> — desde el
+        sitio web hasta la automatización de ventas y redes sociales, con soporte
+        permanente.
+      </p>
+    </div>
+
+    <!-- ── SECCIÓN 1 ── -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-number">1</div>
+        <div>
+          <div class="section-title">Desarrollo inicial de la plataforma</div>
+          <div class="section-subtitle">Pago único — dos cuotas</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="card-lead">
+          Desarrollo completo del sitio web, sistema de ventas y automatización
+          de contenido. El pago se divide en dos partes iguales: al inicio
+          del proyecto y al momento del lanzamiento.
+        </p>
+
+        <ul class="features">
+          <li>Diseño y desarrollo del sitio web completo (Frontend)</li>
+          <li>Sistema de registro e inicio de sesión de usuarios</li>
+          <li>Integración de pagos con MercadoPago</li>
+          <li>Base de datos y almacenamiento en Firebase</li>
+          <li>Panel de administración de productos</li>
+          <li>Carga inicial de hasta 50 productos con descripciones asistidas por IA</li>
+          <li>Carrito de compras y pedidos por WhatsApp</li>
+          <li>Automatización de reels en Instagram y Facebook (Make)</li>
+          <li>Diseño responsivo (mobile + desktop)</li>
+          <li>Deploy y puesta en producción</li>
+        </ul>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Cuota</th>
+              <th>Monto</th>
+              <th>Momento de pago</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>1ª cuota</td>
+              <td class="amount">$300.000</td>
+              <td>Al inicio del proyecto</td>
+            </tr>
+            <tr>
+              <td>2ª cuota</td>
+              <td class="amount">$300.000</td>
+              <td>Al lanzamiento del sitio</td>
+            </tr>
+            <tr>
+              <td><strong>Total desarrollo</strong></td>
+              <td class="amount"><strong>$600.000</strong></td>
+              <td>—</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="divider">✦ &nbsp; ✦ &nbsp; ✦</div>
+
+    <!-- ── SECCIÓN 2 ── -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-number">2</div>
+        <div>
+          <div class="section-title">Mantenimiento y continuidad</div>
+          <div class="section-subtitle">Cuota mensual fija</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="card-lead">
+          Servicio mensual de acompañamiento técnico y comercial para que la
+          plataforma esté siempre actualizada, posicionada y generando resultados.
+        </p>
+
+        <ul class="features">
+          <li>Reportes semanales de SEO y posicionamiento</li>
+          <li>Seguimiento de visitas, conversiones y ventas</li>
+          <li>Publicación y actualización de productos</li>
+          <li>Actualizaciones de seguridad y mejoras técnicas</li>
+          <li>Investigación de tendencias y nuevas herramientas</li>
+          <li>Desarrollo de herramientas internas (buscador de leads, CRM básico)</li>
+          <li>Seguimiento comercial: métricas de ventas y clientes</li>
+          <li>Soporte ante consultas y problemas técnicos</li>
+        </ul>
+
+        <div class="price-wrap">
+          <div class="price-badge">
+            $100.000 / mes
+            <small>cuota mensual fija</small>
+          </div>
+          <p class="price-note">Facturación mensual · Los valores se revisan semestralmente por inflación con acuerdo previo</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── NOTA ── -->
+    <div class="nota">
+      <strong>Nota:</strong> Esta propuesta cubre la plataforma digital completa — desde el diseño
+      hasta la operación continua. El desarrollo inicial es un pago único; el mantenimiento mensual
+      puede comenzar a partir del lanzamiento o acordarse antes según las necesidades del negocio.
+      Cualquier funcionalidad adicional fuera del alcance definido se cotiza por separado.
+    </div>
+
+  </main>
+
+  <div class="gold-bar"></div>
+
+  <footer>
+    <div>
+      <p class="footer-brand">Legado Bazar &amp; Deco</p>
+      <p>Neuquén, Argentina · Marzo 2026</p>
+    </div>
+    <p style="text-align:right;">
+      Propuesta preparada por<br/>
+      <strong style="color:#F2E6C8;">Mariano Aliandri</strong><br/>
+      Desarrollo Web &amp; Automatización
+    </p>
+  </footer>
+
+</body>
+</html>

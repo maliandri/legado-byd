@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useProducts } from '@/hooks/useProducts'
 import AdminGuard from '@/components/admin/AdminGuard'
 import ProductTable from '@/components/admin/ProductTable'
+import BulkImageUpload from '@/components/admin/BulkImageUpload'
 import {
   getCategorias,
   createCategoria,
@@ -243,6 +244,7 @@ function AdminPanel() {
                   {syncingSheets ? 'Guardando backup...' : 'Backup (Firestore → Sheet)'}
                 </button>
               </div>
+              <BulkImageUpload productos={productos} onDone={refresh} />
               <ProductTable
                 productos={productos}
                 categorias={categorias}
