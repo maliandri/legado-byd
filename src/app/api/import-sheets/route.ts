@@ -27,12 +27,14 @@ const EMOJI_MAP: Record<string, string> = {
   panaderia:  '🍞',
   pasteleria: '🎂',
   decoracion: '✨',
+  deco:       '✨',
+  bazar:      '🏪',
   herramientas: '🔧',
-  moldes: '🫙',
-  embalaje: '📦',
-  materias: '🌾',
+  moldes:     '🫙',
+  embalaje:   '📦',
+  materias:   '🌾',
   ingredientes: '🌾',
-  general: '🛍️',
+  general:    '🛍️',
 }
 
 function categoriaEmoji(slug: string): string {
@@ -114,7 +116,7 @@ export async function POST(req: Request) {
     const sheets = google.sheets({ version: 'v4', auth })
     const sheetRes = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID,
-      range: 'publico!A2:J2000',
+      range: 'publico!A2:L2000',
     })
     const rows = (sheetRes.data.values ?? []).filter(r => r[0]?.toString().trim())
     if (rows.length === 0) return NextResponse.json({ ok: true, creados: 0, actualizados: 0 })
@@ -146,12 +148,13 @@ export async function POST(req: Request) {
         const nombre = row[0]?.toString().trim()
         if (!nombre) continue
 
-        const categoria  = row[1]?.toString().trim() || 'general'
+        // A=nombre B=CATEGORIA C=FLIA PROD D=SUB FAMILIA E=MARCA F=PVP G=IVA H=FLETE I=P.COMPRA J=COSTO
+        const categoria  = norm(row[1]?.toString().trim() || 'general')
         const subfamilia = row[2]?.toString().trim() || ''
-        const marca      = row[3]?.toString().trim() || ''
-        const precio     = parseNum(row[4]) ?? 0
-        const iva        = parseNum(row[5])
-        const costo      = parseNum(row[6])
+        const marca      = row[4]?.toString().trim() || ''
+        const precio     = parseNum(row[5]) ?? 0
+        const iva        = parseNum(row[6])
+        const costo      = parseNum(row[9])
 
         const fields: Record<string, any> = {
           nombre:      { stringValue: nombre },
@@ -198,12 +201,14 @@ export async function POST(req: Request) {
       const nombre = row[0]?.toString().trim()
       if (!nombre) continue
 
-      const categoria  = row[1]?.toString().trim() || undefined
+      // A=nombre B=CATEGORIA C=FLIA PROD D=SUB FAMILIA E=MARCA F=PVP G=IVA H=FLETE I=P.COMPRA J=COSTO
+      const catRaw     = row[1]?.toString().trim()
+      const categoria  = catRaw ? norm(catRaw) : undefined
       const subfamilia = row[2]?.toString().trim() || undefined
-      const marca      = row[3]?.toString().trim() || undefined
-      const precio     = parseNum(row[4])
-      const iva        = parseNum(row[5])
-      const costo      = parseNum(row[6])
+      const marca      = row[4]?.toString().trim() || undefined
+      const precio     = parseNum(row[5])
+      const iva        = parseNum(row[6])
+      const costo      = parseNum(row[9])
 
       const docId = docMap.get(norm(nombre))
       if (!docId) { noEncontrados.push(nombre); continue }
