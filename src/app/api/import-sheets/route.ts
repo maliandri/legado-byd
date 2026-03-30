@@ -23,12 +23,68 @@ function norm(s: string): string {
     .replace(/\s+/g, ' ')
 }
 
+const EMOJI_MAP: Record<string, string> = {
+  panaderia:  '🍞',
+  pasteleria: '🎂',
+  decoracion: '✨',
+  herramientas: '🔧',
+  moldes: '🫙',
+  embalaje: '📦',
+  materias: '🌾',
+  ingredientes: '🌾',
+  general: '🛍️',
+}
+
+function categoriaEmoji(slug: string): string {
+  for (const key of Object.keys(EMOJI_MAP)) {
+    if (slug.includes(key)) return EMOJI_MAP[key]
+  }
+  return '🛍️'
+}
+
 function fval(field: any): any {
   if (!field) return undefined
   if ('stringValue' in field) return field.stringValue
   if ('integerValue' in field) return Number(field.integerValue)
   if ('doubleValue' in field) return Number(field.doubleValue)
   return undefined
+}
+
+async function syncCategorias(rows: any[][], headers: Record<string, string>) {
+  // Extraer categorías únicas de las filas del Sheet
+  const unique = new Map<string, string>() // slug → nombre original
+  for (const row of rows) {
+    const raw = row[1]?.toString().trim()
+    if (!raw) continue
+    const slug = norm(raw)
+    if (!unique.has(slug)) unique.set(slug, raw)
+  }
+  if (unique.size === 0) return
+
+  // Leer categorías existentes en Firestore
+  const fsRes = await fetch(`${FIRESTORE_BASE}/categorias?pageSize=200`)
+  const fsJson = fsRes.ok ? await fsRes.json() : {}
+  const existingSlugs = new Set<string>()
+  for (const doc of fsJson.documents ?? []) {
+    const slug = fval(doc.fields?.slug)
+    if (slug) existingSlugs.add(String(slug))
+  }
+
+  // Crear las que faltan
+  for (const [slug, nombre] of unique) {
+    if (existingSlugs.has(slug)) continue
+    await fetch(`${FIRESTORE_BASE}/categorias`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        fields: {
+          nombre: { stringValue: nombre },
+          slug:   { stringValue: slug },
+          emoji:  { stringValue: categoriaEmoji(slug) },
+        },
+      }),
+    })
+  }
 }
 
 export async function POST(req: Request) {
@@ -120,6 +176,7 @@ export async function POST(req: Request) {
         if (postRes.ok) creados++
       }
 
+      await syncCategorias(rows, headers)
       return NextResponse.json({ ok: true, creados, actualizados: 0 })
     }
 
@@ -174,6 +231,7 @@ export async function POST(req: Request) {
 
     if (noEncontrados.length > 0) console.log('No encontrados:', noEncontrados)
 
+    await syncCategorias(rows, headers)
     return NextResponse.json({ ok: true, actualizados, creados: 0, noEncontrados, totalNoEncontrados: noEncontrados.length })
   } catch (err: any) {
     console.error('import-sheets error:', err)
