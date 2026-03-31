@@ -26,20 +26,26 @@ export function useAuth() {
     const auth = getFirebaseAuth()
     const unsubscribe = onAuthStateChanged(auth, async (u) => {
       setUser(u)
-      if (u && !adminEmails.includes(u.email ?? '')) {
-        let userProfile = await getUsuario(u.uid)
-        if (!userProfile) {
-          await createUsuario(u.uid, {
-            email: u.email ?? '',
-            nombre: u.displayName ?? u.email?.split('@')[0] ?? 'Cliente',
-          })
-          userProfile = await getUsuario(u.uid)
+      try {
+        if (u && !adminEmails.includes(u.email ?? '')) {
+          let userProfile = await getUsuario(u.uid)
+          if (!userProfile) {
+            await createUsuario(u.uid, {
+              email: u.email ?? '',
+              nombre: u.displayName ?? u.email?.split('@')[0] ?? 'Cliente',
+            })
+            userProfile = await getUsuario(u.uid)
+          }
+          setProfile(userProfile)
+        } else {
+          setProfile(null)
         }
-        setProfile(userProfile)
-      } else {
+      } catch (err) {
+        console.error('useAuth profile error:', err)
         setProfile(null)
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     })
     return unsubscribe
   }, [])

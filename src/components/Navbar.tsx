@@ -82,26 +82,24 @@ export default function Navbar() {
 
             {/* Login / Perfil */}
             {!isAdmin && (
-              <div style={{ opacity: loading ? 0 : 1, transition: 'opacity 0.2s', pointerEvents: loading ? 'none' : 'auto' }}>
-                {isCustomer ? (
-                  <a href="/mi-cuenta"
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-sm text-sm font-semibold hover:opacity-80 transition-opacity"
-                    style={{ border: '1.5px solid #4A5E1A', color: '#4A5E1A' }}
-                    title={profile?.nombre || user?.email || 'Mi cuenta'}
-                  >
-                    <UserCircle size={16} />
-                    <span className="hidden lg:inline max-w-[80px] truncate">{profile?.nombre?.split(' ')[0] || 'Mi cuenta'}</span>
-                  </a>
-                ) : (
-                  <a href="/login"
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-sm text-sm font-semibold hover:opacity-80 transition-opacity"
-                    style={{ border: '1.5px solid #A0622A', color: '#A0622A' }}
-                  >
-                    <UserCircle size={16} />
-                    <span className="hidden lg:inline">Ingresar</span>
-                  </a>
-                )}
-              </div>
+              isCustomer ? (
+                <a href="/mi-cuenta"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-sm text-sm font-semibold hover:opacity-80 transition-opacity"
+                  style={{ border: '1.5px solid #4A5E1A', color: '#4A5E1A' }}
+                  title={profile?.nombre || user?.email || 'Mi cuenta'}
+                >
+                  <UserCircle size={16} />
+                  <span className="hidden lg:inline max-w-[80px] truncate">{profile?.nombre?.split(' ')[0] || 'Mi cuenta'}</span>
+                </a>
+              ) : (
+                <a href="/login"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-sm text-sm font-semibold hover:opacity-80 transition-opacity"
+                  style={{ border: '1.5px solid #A0622A', color: '#A0622A' }}
+                >
+                  <UserCircle size={16} />
+                  <span className="hidden lg:inline">Ingresar</span>
+                </a>
+              )
             )}
           </div>
 
