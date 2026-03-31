@@ -80,26 +80,32 @@ export default function Navbar() {
               )}
             </button>
 
-            {/* Login / Perfil */}
-            {!isAdmin && (
-              isCustomer ? (
-                <a href="/mi-cuenta"
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-sm text-sm font-semibold hover:opacity-80 transition-opacity"
-                  style={{ border: '1.5px solid #4A5E1A', color: '#4A5E1A' }}
-                  title={profile?.nombre || user?.email || 'Mi cuenta'}
-                >
-                  <UserCircle size={16} />
-                  <span className="hidden lg:inline max-w-[80px] truncate">{profile?.nombre?.split(' ')[0] || 'Mi cuenta'}</span>
-                </a>
-              ) : (
-                <a href="/login"
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-sm text-sm font-semibold hover:opacity-80 transition-opacity"
-                  style={{ border: '1.5px solid #A0622A', color: '#A0622A' }}
-                >
-                  <UserCircle size={16} />
-                  <span className="hidden lg:inline">Ingresar</span>
-                </a>
-              )
+            {/* Login / Perfil / Admin */}
+            {isAdmin ? (
+              <a href="/admin"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-sm text-sm font-semibold hover:opacity-80 transition-opacity"
+                style={{ border: '1.5px solid #C4A040', color: '#3D1A05' }}
+              >
+                <UserCircle size={16} />
+                <span className="hidden lg:inline">Admin</span>
+              </a>
+            ) : isCustomer ? (
+              <a href="/mi-cuenta"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-sm text-sm font-semibold hover:opacity-80 transition-opacity"
+                style={{ border: '1.5px solid #4A5E1A', color: '#4A5E1A' }}
+                title={profile?.nombre || user?.email || 'Mi cuenta'}
+              >
+                <UserCircle size={16} />
+                <span className="hidden lg:inline max-w-[80px] truncate">{profile?.nombre?.split(' ')[0] || 'Mi cuenta'}</span>
+              </a>
+            ) : (
+              <a href="/login"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-sm text-sm font-semibold hover:opacity-80 transition-opacity"
+                style={{ border: '1.5px solid #A0622A', color: '#A0622A' }}
+              >
+                <UserCircle size={16} />
+                <span className="hidden lg:inline">Ingresar</span>
+              </a>
             )}
           </div>
 
