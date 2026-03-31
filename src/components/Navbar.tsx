@@ -15,7 +15,7 @@ const categorias = [
 export default function Navbar() {
   const [open, setOpen] = useState(false)
   const { totalItems, setOpen: setCartOpen } = useCart()
-  const { user, profile, isAdmin, isCustomer } = useAuth()
+  const { user, profile, isAdmin, isCustomer, loading } = useAuth()
 
   return (
     <nav
@@ -80,8 +80,8 @@ export default function Navbar() {
               )}
             </button>
 
-            {/* Login / Perfil */}
-            {!isAdmin && (
+            {/* Login / Perfil — oculto mientras carga para evitar flash */}
+            {!loading && !isAdmin && (
               isCustomer ? (
                 <a href="/mi-cuenta"
                   className="flex items-center gap-1.5 px-3 py-2 rounded-sm text-sm font-semibold hover:opacity-80 transition-opacity"
