@@ -7,11 +7,11 @@ import {
   arrayRemove,
   serverTimestamp,
 } from 'firebase/firestore'
-import { db } from './config'
+import { getFirebaseDb } from './config'
 import type { Usuario } from '@/types'
 
 export async function getUsuario(uid: string): Promise<Usuario | null> {
-  const snap = await getDoc(doc(db, 'usuarios', uid))
+  const snap = await getDoc(doc(getFirebaseDb(), 'usuarios', uid))
   if (!snap.exists()) return null
   const d = snap.data()
   return {
@@ -34,7 +34,7 @@ export async function getUsuario(uid: string): Promise<Usuario | null> {
 }
 
 export async function createUsuario(uid: string, data: { email: string; nombre: string }): Promise<void> {
-  await setDoc(doc(db, 'usuarios', uid), {
+  await setDoc(doc(getFirebaseDb(), 'usuarios', uid), {
     email: data.email,
     nombre: data.nombre,
     favoritos: [],
@@ -47,11 +47,11 @@ export async function updateUsuario(
   uid: string,
   data: Partial<Omit<Usuario, 'uid' | 'email' | 'favoritos' | 'createdAt'>>
 ): Promise<void> {
-  await updateDoc(doc(db, 'usuarios', uid), { ...data })
+  await updateDoc(doc(getFirebaseDb(), 'usuarios', uid), { ...data })
 }
 
 export async function toggleFavorito(uid: string, productoId: string, isFav: boolean): Promise<void> {
-  await updateDoc(doc(db, 'usuarios', uid), {
+  await updateDoc(doc(getFirebaseDb(), 'usuarios', uid), {
     favoritos: isFav ? arrayRemove(productoId) : arrayUnion(productoId),
   })
 }
