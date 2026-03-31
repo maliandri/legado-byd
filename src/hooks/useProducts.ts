@@ -1,37 +1,27 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { getProductos, getProductosByCategoria } from '@/lib/firebase/firestore'
+import { useState, useEffect, useCallback } from 'react'
+import { getProductos } from '@/lib/firebase/firestore'
 import type { Producto } from '@/types'
 
 export function useProducts(categoriaSlug?: string) {
-  const [productos, setProductos] = useState<Producto[]>([])
+  const [todos, setTodos] = useState<Producto[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
+  const load = useCallback(() => {
     setLoading(true)
-    const fetch = categoriaSlug
-      ? getProductosByCategoria(categoriaSlug)
-      : getProductos()
-
-    fetch
-      .then(setProductos)
+    getProductos()
+      .then(setTodos)
       .catch(() => setError('No se pudieron cargar los productos.'))
       .finally(() => setLoading(false))
-  }, [categoriaSlug])
+  }, [])
 
-  function refresh() {
-    setLoading(true)
-    const fetch = categoriaSlug
-      ? getProductosByCategoria(categoriaSlug)
-      : getProductos()
+  useEffect(() => { load() }, [load])
 
-    fetch
-      .then(setProductos)
-      .catch(() => setError('No se pudieron cargar los productos.'))
-      .finally(() => setLoading(false))
-  }
+  const productos = categoriaSlug
+    ? todos.filter(p => p.categoria === categoriaSlug)
+    : todos
 
-  return { productos, loading, error, refresh }
+  return { productos, loading, error, refresh: load }
 }
