@@ -6,16 +6,17 @@ import Image from 'next/image'
 import { useAuth } from '@/hooks/useAuth'
 
 export default function LoginPage() {
-  const { user, isAdmin, loading, signInCustomer } = useAuth()
+  const { user, profile, isAdmin, loading, signInCustomer } = useAuth()
   const router = useRouter()
   const [error, setError] = useState('')
   const [signingIn, setSigningIn] = useState(false)
 
   useEffect(() => {
-    if (!loading && user) {
-      router.replace(isAdmin ? '/admin' : '/mi-cuenta')
-    }
-  }, [user, isAdmin, loading, router])
+    if (loading || !user) return
+    if (isAdmin) { router.replace('/admin'); return }
+    // loading=false garantiza que profile ya fue resuelto
+    router.replace(profile?.perfilCompleto ? '/mi-cuenta' : '/registro')
+  }, [user, isAdmin, loading, profile, router])
 
   async function handleLogin() {
     setError('')

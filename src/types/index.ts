@@ -21,13 +21,26 @@ export interface Categoria {
   emoji: string
 }
 
+export type TipoUsuario = 'cliente' | 'empresa'
+
 export interface Usuario {
   uid: string
   email: string
   nombre: string
+  tipo?: TipoUsuario
+  // Cliente final
+  dni?: string
+  fechaNacimiento?: string   // ISO date string: YYYY-MM-DD
+  // Empresa
+  cuit?: string
+  razonSocial?: string
+  // Compartidos
   telefono?: string
   direccion?: string
-  favoritos: string[] // array de producto IDs
+  ciudad?: string
+  provincia?: string
+  favoritos: string[]
+  perfilCompleto?: boolean
   createdAt: Date
 }
 

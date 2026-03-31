@@ -16,7 +16,10 @@ export default function MiCuentaPage() {
   const [tab, setTab] = useState<'perfil' | 'favoritos' | 'pedidos'>('perfil')
   const [pedidos, setPedidos] = useState<Pedido[]>([])
   const [favoritos, setFavoritos] = useState<Producto[]>([])
-  const [editForm, setEditForm] = useState({ nombre: '', telefono: '', direccion: '' })
+  const [editForm, setEditForm] = useState({
+    nombre: '', telefono: '', direccion: '', ciudad: '', provincia: '',
+    dni: '', fechaNacimiento: '', cuit: '', razonSocial: '',
+  })
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
@@ -26,7 +29,17 @@ export default function MiCuentaPage() {
 
   useEffect(() => {
     if (profile) {
-      setEditForm({ nombre: profile.nombre, telefono: profile.telefono ?? '', direccion: profile.direccion ?? '' })
+      setEditForm({
+        nombre: profile.nombre,
+        telefono: profile.telefono ?? '',
+        direccion: profile.direccion ?? '',
+        ciudad: profile.ciudad ?? '',
+        provincia: profile.provincia ?? '',
+        dni: profile.dni ?? '',
+        fechaNacimiento: profile.fechaNacimiento ?? '',
+        cuit: profile.cuit ?? '',
+        razonSocial: profile.razonSocial ?? '',
+      })
     }
   }, [profile])
 
@@ -49,7 +62,15 @@ export default function MiCuentaPage() {
     e.preventDefault()
     if (!user) return
     setSaving(true)
-    await updateUsuario(user.uid, { nombre: editForm.nombre, telefono: editForm.telefono, direccion: editForm.direccion })
+    await updateUsuario(user.uid, {
+      nombre: editForm.nombre,
+      telefono: editForm.telefono,
+      direccion: editForm.direccion,
+      ciudad: editForm.ciudad,
+      provincia: editForm.provincia,
+      ...(profile?.tipo === 'cliente' ? { dni: editForm.dni, fechaNacimiento: editForm.fechaNacimiento } : {}),
+      ...(profile?.tipo === 'empresa' ? { cuit: editForm.cuit, razonSocial: editForm.razonSocial } : {}),
+    })
     refreshProfile()
     setSaving(false)
     setSaved(true)
@@ -112,22 +133,79 @@ export default function MiCuentaPage() {
 
         {/* ── PERFIL ── */}
         {tab === 'perfil' && (
-          <form onSubmit={handleSavePerfil} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-            <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: '1.2rem', color: '#3D1A05' }}>Tus datos</h2>
-            {(['nombre', 'telefono', 'direccion'] as const).map((field) => (
-              <div key={field}>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#6B3A1A', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
-                  {field === 'nombre' ? 'Nombre' : field === 'telefono' ? 'Teléfono' : 'Dirección'}
-                </label>
-                <input
-                  value={editForm[field]}
-                  onChange={(e) => setEditForm({ ...editForm, [field]: e.target.value })}
-                  style={{ width: '100%', padding: '9px 12px', border: '1px solid #DDD0A8', borderRadius: 6, backgroundColor: '#FFFBF2', color: '#3D1A05', fontSize: '0.9rem' }}
-                  placeholder={field === 'nombre' ? 'Tu nombre completo' : field === 'telefono' ? 'Ej: 2990000000' : 'Tu dirección en Neuquén'}
-                />
+          <form onSubmit={handleSavePerfil} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: '1.2rem', color: '#3D1A05' }}>Tus datos</h2>
+              {profile?.tipo && (
+                <span style={{ fontSize: '0.78rem', backgroundColor: '#F2E6C8', border: '1px solid #DDD0A8', borderRadius: 99, padding: '3px 12px', color: '#6B3A1A', fontWeight: 600 }}>
+                  {profile.tipo === 'empresa' ? '🏢 Empresa' : '👤 Cliente'}
+                </span>
+              )}
+            </div>
+
+            {/* Email readonly */}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#6B3A1A', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 4 }}>Email</label>
+              <input value={profile.email} readOnly style={{ width: '100%', padding: '9px 12px', border: '1px solid #DDD0A8', borderRadius: 6, backgroundColor: '#F2E6C8', color: '#6B3A1A', fontSize: '0.9rem' }} />
+            </div>
+
+            {/* Nombre */}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#6B3A1A', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 4 }}>Nombre completo</label>
+              <input value={editForm.nombre} onChange={e => setEditForm({ ...editForm, nombre: e.target.value })} style={{ width: '100%', padding: '9px 12px', border: '1px solid #DDD0A8', borderRadius: 6, backgroundColor: '#FFFBF2', color: '#3D1A05', fontSize: '0.9rem' }} />
+            </div>
+
+            {/* Campos según tipo */}
+            {profile?.tipo === 'cliente' && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#6B3A1A', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 4 }}>DNI</label>
+                  <input value={editForm.dni} onChange={e => setEditForm({ ...editForm, dni: e.target.value })} inputMode="numeric" style={{ width: '100%', padding: '9px 12px', border: '1px solid #DDD0A8', borderRadius: 6, backgroundColor: '#FFFBF2', color: '#3D1A05', fontSize: '0.9rem' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#6B3A1A', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 4 }}>Fecha de nacimiento</label>
+                  <input type="date" value={editForm.fechaNacimiento} onChange={e => setEditForm({ ...editForm, fechaNacimiento: e.target.value })} style={{ width: '100%', padding: '9px 12px', border: '1px solid #DDD0A8', borderRadius: 6, backgroundColor: '#FFFBF2', color: '#3D1A05', fontSize: '0.9rem' }} />
+                </div>
               </div>
-            ))}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            )}
+            {profile?.tipo === 'empresa' && (
+              <>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#6B3A1A', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 4 }}>Razón social</label>
+                  <input value={editForm.razonSocial} onChange={e => setEditForm({ ...editForm, razonSocial: e.target.value })} style={{ width: '100%', padding: '9px 12px', border: '1px solid #DDD0A8', borderRadius: 6, backgroundColor: '#FFFBF2', color: '#3D1A05', fontSize: '0.9rem' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#6B3A1A', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 4 }}>CUIT</label>
+                  <input value={editForm.cuit} onChange={e => setEditForm({ ...editForm, cuit: e.target.value })} style={{ width: '100%', padding: '9px 12px', border: '1px solid #DDD0A8', borderRadius: 6, backgroundColor: '#FFFBF2', color: '#3D1A05', fontSize: '0.9rem' }} />
+                </div>
+              </>
+            )}
+
+            {/* Teléfono */}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#6B3A1A', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 4 }}>Teléfono</label>
+              <input value={editForm.telefono} onChange={e => setEditForm({ ...editForm, telefono: e.target.value })} inputMode="tel" style={{ width: '100%', padding: '9px 12px', border: '1px solid #DDD0A8', borderRadius: 6, backgroundColor: '#FFFBF2', color: '#3D1A05', fontSize: '0.9rem' }} />
+            </div>
+
+            {/* Dirección */}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#6B3A1A', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 4 }}>Dirección</label>
+              <input value={editForm.direccion} onChange={e => setEditForm({ ...editForm, direccion: e.target.value })} style={{ width: '100%', padding: '9px 12px', border: '1px solid #DDD0A8', borderRadius: 6, backgroundColor: '#FFFBF2', color: '#3D1A05', fontSize: '0.9rem' }} />
+            </div>
+
+            {/* Ciudad y Provincia */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#6B3A1A', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 4 }}>Ciudad</label>
+                <input value={editForm.ciudad} onChange={e => setEditForm({ ...editForm, ciudad: e.target.value })} style={{ width: '100%', padding: '9px 12px', border: '1px solid #DDD0A8', borderRadius: 6, backgroundColor: '#FFFBF2', color: '#3D1A05', fontSize: '0.9rem' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#6B3A1A', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 4 }}>Provincia</label>
+                <input value={editForm.provincia} onChange={e => setEditForm({ ...editForm, provincia: e.target.value })} style={{ width: '100%', padding: '9px 12px', border: '1px solid #DDD0A8', borderRadius: 6, backgroundColor: '#FFFBF2', color: '#3D1A05', fontSize: '0.9rem' }} />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 4 }}>
               <button
                 type="submit"
                 disabled={saving}
