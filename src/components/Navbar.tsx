@@ -1,21 +1,30 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { Menu, X, ShoppingCart, UserCircle } from 'lucide-react'
 import { useCart } from '@/context/CartContext'
 import { useAuth } from '@/hooks/useAuth'
+import { getCategorias } from '@/lib/firebase/firestore'
+import type { Categoria } from '@/types'
 
-const categorias = [
-  { nombre: 'Panadería', slug: 'panaderia', emoji: '🍞' },
-  { nombre: 'Pastelería', slug: 'pasteleria', emoji: '🎂' },
-  { nombre: 'Decoración', slug: 'decoracion', emoji: '✨' },
+const FALLBACK: Categoria[] = [
+  { id: 'panaderia', nombre: 'Panadería', slug: 'panaderia', emoji: '🍞' },
+  { id: 'pasteleria', nombre: 'Pastelería', slug: 'pasteleria', emoji: '🎂' },
+  { id: 'decoracion', nombre: 'Decoración', slug: 'decoracion', emoji: '✨' },
 ]
 
 export default function Navbar() {
   const [open, setOpen] = useState(false)
+  const [categorias, setCategorias] = useState<Categoria[]>(FALLBACK)
   const { totalItems, setOpen: setCartOpen } = useCart()
-  const { user, profile, isAdmin, isCustomer, loading } = useAuth()
+  const { user, profile, isAdmin, isCustomer } = useAuth()
+
+  useEffect(() => {
+    getCategorias()
+      .then(cats => { if (cats.length) setCategorias(cats) })
+      .catch(() => {})
+  }, [])
 
   return (
     <nav
