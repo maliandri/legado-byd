@@ -1,20 +1,43 @@
 'use client'
 
-import { X, Plus, Minus, Trash2, ShoppingCart, MessageCircle } from 'lucide-react'
+import { X, Plus, Minus, Trash2, ShoppingCart } from 'lucide-react'
 import Image from 'next/image'
 import { useCart } from '@/context/CartContext'
 import { useAuth } from '@/hooks/useAuth'
 import { savePedido } from '@/lib/firebase/pedidos'
 import { decrementStock } from '@/lib/firebase/firestore'
 
+async function enviarEmailsPedido(params: {
+  email: string
+  nombre: string
+  items: { nombre: string; cantidad: number; precio: number }[]
+  total: number
+}) {
+  try {
+    await fetch('/api/pedido/confirmar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    })
+  } catch (e) {
+    console.error('Error enviando email de pedido:', e)
+  }
+}
+
 const whatsapp = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '5492990000000'
 
 export default function CartDrawer() {
   const { items, open, totalItems, totalPrecio, setOpen, removeItem, increment, decrement, clearCart } = useCart()
-  const { user, isCustomer } = useAuth()
+  const { user, isCustomer, profile } = useAuth()
 
   async function handlePedirPorWhatsApp() {
     if (items.length === 0) return
+
+    const emailItems = items.map((i) => ({
+      nombre: i.producto.nombre,
+      precio: i.producto.precio,
+      cantidad: i.cantidad,
+    }))
 
     // Guardar pedido en Firestore si el cliente está logueado
     if (isCustomer && user) {
@@ -27,6 +50,16 @@ export default function CartDrawer() {
         })))
       } catch (e) {
         console.error('Error guardando pedido:', e)
+      }
+
+      // Enviar emails de confirmación al cliente y notificación al admin
+      if (user.email) {
+        enviarEmailsPedido({
+          email: user.email,
+          nombre: profile?.nombre || user.displayName || 'Cliente',
+          items: emailItems,
+          total: totalPrecio,
+        })
       }
     }
 
