@@ -6,17 +6,18 @@ import { useProducts } from '@/hooks/useProducts'
 import AdminGuard from '@/components/admin/AdminGuard'
 import ProductTable from '@/components/admin/ProductTable'
 import BulkImageUpload from '@/components/admin/BulkImageUpload'
+import EmailMasivo from '@/components/admin/EmailMasivo'
 import {
   getCategorias,
   createCategoria,
   updateCategoria,
   deleteCategoria,
 } from '@/lib/firebase/firestore'
-import { LogOut, ShoppingBag, LayoutGrid, RefreshCw, Plus, Pencil, Trash2, FileSpreadsheet } from 'lucide-react'
+import { LogOut, ShoppingBag, LayoutGrid, RefreshCw, Plus, Pencil, Trash2, FileSpreadsheet, Mail } from 'lucide-react'
 import type { Categoria } from '@/types'
 import { useEffect } from 'react'
 
-type Tab = 'productos' | 'categorias'
+type Tab = 'productos' | 'categorias' | 'emails'
 
 export default function AdminPage() {
   return (
@@ -173,6 +174,10 @@ function AdminPanel() {
             <ShoppingBag size={15} className="inline mr-1.5" />
             Categorías
           </button>
+          <button style={tabStyle(tab === 'emails')} onClick={() => setTab('emails')}>
+            <Mail size={15} className="inline mr-1.5" />
+            Emails
+          </button>
         </div>
       </div>
 
@@ -261,6 +266,8 @@ function AdminPanel() {
             onRefresh={fetchCategorias}
           />
         )}
+
+        {tab === 'emails' && <EmailMasivo />}
       </main>
     </div>
   )
