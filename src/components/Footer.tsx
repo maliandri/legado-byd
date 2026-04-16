@@ -2,6 +2,13 @@ import { MapPin, Phone, MessageCircle } from 'lucide-react'
 
 const whatsapp = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '5492990000000'
 
+// Formatea 5492991234567 → +54 299 123-4567
+function formatTel(n: string) {
+  const d = n.replace(/\D/g, '')
+  if (d.length === 13) return `+${d.slice(0,2)} ${d.slice(3,6)} ${d.slice(6,9)}-${d.slice(9)}`
+  return `+${d}`
+}
+
 export default function Footer() {
   return (
     <footer
@@ -73,7 +80,7 @@ export default function Footer() {
                   style={{ color: '#DDD0A8', fontSize: '0.875rem' }}
                   className="hover:text-[#C4A040] transition-colors"
                 >
-                  +54 299 000-0000
+                  {formatTel(whatsapp)}
                 </a>
               </li>
               <li className="flex items-center gap-2">
