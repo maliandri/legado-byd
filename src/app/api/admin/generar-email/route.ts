@@ -35,10 +35,17 @@ No agregues texto antes ni después del JSON.`
     )
 
     const data = await res.json()
+
+    if (!res.ok) {
+      const geminiError = data.error?.message || JSON.stringify(data)
+      console.error('generar-email Gemini HTTP error:', res.status, geminiError)
+      return NextResponse.json({ error: `Gemini error ${res.status}: ${geminiError}` }, { status: 500 })
+    }
+
     const raw = data.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
 
     if (!raw.trim()) {
-      const reason = data.candidates?.[0]?.finishReason || 'sin respuesta'
+      const reason = data.candidates?.[0]?.finishReason || JSON.stringify(data)
       return NextResponse.json({ error: `Gemini no devolvió contenido (${reason}). Intentá con otro prompt.` }, { status: 500 })
     }
 
