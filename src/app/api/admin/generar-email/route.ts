@@ -37,11 +37,25 @@ No agregues texto antes ni después del JSON.`
     const data = await res.json()
     const raw = data.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
 
+    if (!raw.trim()) {
+      const reason = data.candidates?.[0]?.finishReason || 'sin respuesta'
+      return NextResponse.json({ error: `Gemini no devolvió contenido (${reason}). Intentá con otro prompt.` }, { status: 500 })
+    }
+
     // Limpiar posibles markdown code blocks
     const cleaned = raw.replace(/```json\s*/gi, '').replace(/```\s*/gi, '').trim()
-    const parsed = JSON.parse(cleaned)
 
-    return NextResponse.json({ ok: true, asunto: parsed.asunto, preview: parsed.preview, cuerpo: parsed.cuerpo })
+    let parsed: any
+    try {
+      parsed = JSON.parse(cleaned)
+    } catch {
+      // Gemini no devolvió JSON válido — intentar extraer con regex
+      const asunto = cleaned.match(/"asunto"\s*:\s*"([^"]+)"/)?.[1] || 'Sin asunto'
+      const cuerpo = cleaned.match(/"cuerpo"\s*:\s*"([\s\S]+?)"\s*[,}]/)?.[1] || cleaned
+      return NextResponse.json({ ok: true, asunto, preview: '', cuerpo })
+    }
+
+    return NextResponse.json({ ok: true, asunto: parsed.asunto, preview: parsed.preview ?? '', cuerpo: parsed.cuerpo })
   } catch (err: any) {
     console.error('generar-email error:', err)
     return NextResponse.json({ error: err.message || 'Error al generar email' }, { status: 500 })
