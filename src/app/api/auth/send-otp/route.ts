@@ -17,17 +17,27 @@ export async function POST(req: Request) {
     }
 
     const code = generateCode()
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000) // 10 minutos
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000)
 
     // Guardar OTP en Firestore
-    await setDoc(doc(getFirebaseDb(), 'otps', uid), {
-      code,
-      expiresAt,
-      createdAt: serverTimestamp(),
-    })
+    try {
+      await setDoc(doc(getFirebaseDb(), 'otps', uid), {
+        code,
+        expiresAt,
+        createdAt: serverTimestamp(),
+      })
+    } catch (firestoreErr: any) {
+      console.error('send-otp FIRESTORE error:', firestoreErr)
+      return NextResponse.json({ error: `Firestore: ${firestoreErr.message}` }, { status: 500 })
+    }
 
     // Enviar email
-    await sendOTPEmail({ email, nombre: nombre || email.split('@')[0], code })
+    try {
+      await sendOTPEmail({ email, nombre: nombre || email.split('@')[0], code })
+    } catch (resendErr: any) {
+      console.error('send-otp RESEND error:', resendErr)
+      return NextResponse.json({ error: `Email: ${resendErr.message}` }, { status: 500 })
+    }
 
     return NextResponse.json({ ok: true })
   } catch (err: any) {
