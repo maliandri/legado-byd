@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import { getFirebaseDb } from '@/lib/firebase/config'
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
+import { adminDb } from '@/lib/firebase/admin'
+import { FieldValue } from 'firebase-admin/firestore'
 import { sendOTPEmail } from '@/lib/resend/client'
 
 export const runtime = 'nodejs'
@@ -19,12 +19,12 @@ export async function POST(req: Request) {
     const code = generateCode()
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000)
 
-    // Guardar OTP en Firestore
+    // Guardar OTP en Firestore via Admin SDK (bypasea security rules)
     try {
-      await setDoc(doc(getFirebaseDb(), 'otps', uid), {
+      await adminDb().collection('otps').doc(uid).set({
         code,
         expiresAt,
-        createdAt: serverTimestamp(),
+        createdAt: FieldValue.serverTimestamp(),
       })
     } catch (firestoreErr: any) {
       console.error('send-otp FIRESTORE error:', firestoreErr)

@@ -41,6 +41,7 @@ export interface Usuario {
   provincia?: string
   favoritos: string[]
   perfilCompleto?: boolean
+  bloqueado?: boolean
   createdAt: Date
 }
 

@@ -1,8 +1,11 @@
 import {
   doc,
   getDoc,
+  getDocs,
   setDoc,
   updateDoc,
+  deleteDoc,
+  collection,
   arrayUnion,
   arrayRemove,
   serverTimestamp,
@@ -54,4 +57,33 @@ export async function toggleFavorito(uid: string, productoId: string, isFav: boo
   await updateDoc(doc(getFirebaseDb(), 'usuarios', uid), {
     favoritos: isFav ? arrayRemove(productoId) : arrayUnion(productoId),
   })
+}
+
+export async function getUsuarios(): Promise<Usuario[]> {
+  const snap = await getDocs(collection(getFirebaseDb(), 'usuarios'))
+  return snap.docs.map(d => {
+    const data = d.data()
+    return {
+      uid: d.id,
+      email: data.email,
+      nombre: data.nombre,
+      tipo: data.tipo,
+      dni: data.dni,
+      fechaNacimiento: data.fechaNacimiento,
+      cuit: data.cuit,
+      razonSocial: data.razonSocial,
+      telefono: data.telefono,
+      direccion: data.direccion,
+      ciudad: data.ciudad,
+      provincia: data.provincia,
+      favoritos: data.favoritos ?? [],
+      perfilCompleto: data.perfilCompleto ?? false,
+      bloqueado: data.bloqueado ?? false,
+      createdAt: data.createdAt?.toDate?.() ?? new Date(),
+    } as Usuario
+  })
+}
+
+export async function deleteUsuario(uid: string): Promise<void> {
+  await deleteDoc(doc(getFirebaseDb(), 'usuarios', uid))
 }
