@@ -3,7 +3,9 @@
 import { useState, useEffect } from 'react'
 import {
   onAuthStateChanged,
-  signInWithCredential,
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   GoogleAuthProvider,
   signOut as firebaseSignOut,
   User,
@@ -12,7 +14,12 @@ import { getFirebaseAuth } from '@/lib/firebase/config'
 import { getUsuario, createUsuario } from '@/lib/firebase/usuarios'
 import type { Usuario } from '@/types'
 
-const GOOGLE_CLIENT_ID = '881207105146-p6eks33q98p7p2oshmnfgqc4k87i9pno.apps.googleusercontent.com'
+const provider = new GoogleAuthProvider()
+
+function isMobile() {
+  if (typeof navigator === 'undefined') return false
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+}
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null)
@@ -24,6 +31,10 @@ export function useAuth() {
 
   useEffect(() => {
     const auth = getFirebaseAuth()
+
+    // Manejar resultado de redirect (mobile)
+    getRedirectResult(auth).catch(() => {})
+
     const unsubscribe = onAuthStateChanged(auth, async (u) => {
       setUser(u)
       try {
@@ -53,34 +64,20 @@ export function useAuth() {
   const isAdmin = adminEmails.includes(user?.email ?? '')
   const isCustomer = !!user && !isAdmin
 
-  // Sign-in via Google Identity Services → Firebase Credential
-  // Bypasea completamente el handler de Firebase
-  function signInWithGIS(): Promise<{ error?: string }> {
-    return new Promise((resolve) => {
-      if (typeof window === 'undefined' || !(window as any).google) {
-        resolve({ error: 'Google no disponible. Recargá la página.' })
-        return
+  async function signInWithGoogle(): Promise<{ error?: string }> {
+    try {
+      const auth = getFirebaseAuth()
+      if (isMobile()) {
+        await signInWithRedirect(auth, provider)
+        return {}
+      } else {
+        await signInWithPopup(auth, provider)
+        return {}
       }
-      const client = (window as any).google.accounts.oauth2.initTokenClient({
-        client_id: GOOGLE_CLIENT_ID,
-        scope: 'email profile openid',
-        callback: async (response: any) => {
-          if (response.error) {
-            resolve({ error: response.error })
-            return
-          }
-          try {
-            const credential = GoogleAuthProvider.credential(null, response.access_token)
-            await signInWithCredential(getFirebaseAuth(), credential)
-            resolve({})
-          } catch (err: any) {
-            console.error(err)
-            resolve({ error: err.message || 'Error al iniciar sesión.' })
-          }
-        },
-      })
-      client.requestAccessToken()
-    })
+    } catch (err: any) {
+      console.error('signInWithGoogle error:', err)
+      return { error: err.message || 'Error al iniciar sesión.' }
+    }
   }
 
   async function signOut() {
@@ -96,8 +93,8 @@ export function useAuth() {
 
   return {
     user, profile, loading, isAdmin, isCustomer,
-    signInWithGoogle: signInWithGIS,
-    signInCustomer: signInWithGIS,
+    signInWithGoogle,
+    signInCustomer: signInWithGoogle,
     signOut, refreshProfile,
   }
 }
