@@ -28,14 +28,17 @@ export function getFirebaseAuth(): Auth {
   if (_auth) return _auth
   const app = getFirebaseApp()
   if (typeof window === 'undefined') {
-    // SSR: inicialización mínima sin APIs de browser
     _auth = getAuth(app)
   } else {
-    // Browser: inicialización completa con persistence y resolver
-    _auth = initializeAuth(app, {
-      persistence: [indexedDBLocalPersistence, browserLocalPersistence],
-      popupRedirectResolver: browserPopupRedirectResolver,
-    })
+    try {
+      _auth = initializeAuth(app, {
+        persistence: [indexedDBLocalPersistence, browserLocalPersistence],
+        popupRedirectResolver: browserPopupRedirectResolver,
+      })
+    } catch {
+      // Ya inicializado (ej: vuelta de redirect en mobile)
+      _auth = getAuth(app)
+    }
   }
   return _auth
 }

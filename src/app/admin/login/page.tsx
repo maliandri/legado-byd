@@ -6,10 +6,14 @@ import { useAuth } from '@/hooks/useAuth'
 import { ShoppingBag, Loader2 } from 'lucide-react'
 
 export default function LoginPage() {
-  const { user, loading, isAdmin, signInWithGoogle } = useAuth()
+  const { user, loading, isAdmin, signInWithGoogle, redirectError } = useAuth()
   const router = useRouter()
   const [error, setError] = useState('')
   const [signing, setSigning] = useState(false)
+
+  useEffect(() => {
+    if (redirectError) setError(redirectError)
+  }, [redirectError])
 
   useEffect(() => {
     if (!loading && isAdmin) {

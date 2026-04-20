@@ -6,10 +6,14 @@ import Image from 'next/image'
 import { useAuth } from '@/hooks/useAuth'
 
 export default function LoginPage() {
-  const { user, profile, isAdmin, loading, signInCustomer } = useAuth()
+  const { user, profile, isAdmin, loading, signInCustomer, redirectError } = useAuth()
   const router = useRouter()
   const [error, setError] = useState('')
   const [signingIn, setSigningIn] = useState(false)
+
+  useEffect(() => {
+    if (redirectError) setError(redirectError)
+  }, [redirectError])
 
   useEffect(() => {
     if (loading || !user) return

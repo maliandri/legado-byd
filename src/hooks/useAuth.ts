@@ -16,15 +16,11 @@ import type { Usuario } from '@/types'
 
 const provider = new GoogleAuthProvider()
 
-function isMobile() {
-  if (typeof navigator === 'undefined') return false
-  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-}
-
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Usuario | null>(null)
   const [loading, setLoading] = useState(true)
+  const [redirectError, setRedirectError] = useState<string | null>(null)
 
   const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || process.env.NEXT_PUBLIC_ADMIN_EMAIL || '')
     .split(',').map(e => e.trim()).filter(Boolean)
@@ -32,8 +28,15 @@ export function useAuth() {
   useEffect(() => {
     const auth = getFirebaseAuth()
 
-    // Manejar resultado de redirect (mobile)
-    getRedirectResult(auth).catch(() => {})
+    // Procesar resultado de redirect (mobile) — captura errores visibles
+    getRedirectResult(auth)
+      .then(result => {
+        if (result?.user) setRedirectError(null)
+      })
+      .catch(err => {
+        console.error('getRedirectResult error:', err)
+        setRedirectError(err.message || 'Error al iniciar sesión con Google.')
+      })
 
     const unsubscribe = onAuthStateChanged(auth, async (u) => {
       setUser(u)
@@ -67,13 +70,22 @@ export function useAuth() {
   async function signInWithGoogle(): Promise<{ error?: string }> {
     try {
       const auth = getFirebaseAuth()
-      if (isMobile()) {
-        await signInWithRedirect(auth, provider)
-        return {}
-      } else {
+      // Intentar popup primero; si está bloqueado (mobile) usar redirect
+      try {
         await signInWithPopup(auth, provider)
-        return {}
+      } catch (popupErr: any) {
+        if (
+          popupErr.code === 'auth/popup-blocked' ||
+          popupErr.code === 'auth/popup-closed-by-user' ||
+          popupErr.code === 'auth/cancelled-popup-request'
+        ) {
+          await signInWithRedirect(auth, provider)
+          // La página navega — no hay más código que ejecutar
+        } else {
+          throw popupErr
+        }
       }
+      return {}
     } catch (err: any) {
       console.error('signInWithGoogle error:', err)
       return { error: err.message || 'Error al iniciar sesión.' }
@@ -93,6 +105,7 @@ export function useAuth() {
 
   return {
     user, profile, loading, isAdmin, isCustomer,
+    redirectError,
     signInWithGoogle,
     signInCustomer: signInWithGoogle,
     signOut, refreshProfile,
