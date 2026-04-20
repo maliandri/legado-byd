@@ -60,8 +60,11 @@ export async function getProducto(id: string): Promise<Producto | null> {
 }
 
 export async function createProducto(data: Omit<Producto, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
+  const clean = Object.fromEntries(
+    Object.entries(data).filter(([, v]) => v !== undefined)
+  )
   const ref = await addDoc(collection(db(), 'productos'), {
-    ...data,
+    ...clean,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   })
@@ -69,8 +72,11 @@ export async function createProducto(data: Omit<Producto, 'id' | 'createdAt' | '
 }
 
 export async function updateProducto(id: string, data: Partial<Omit<Producto, 'id' | 'createdAt'>>): Promise<void> {
+  const clean = Object.fromEntries(
+    Object.entries(data).filter(([, v]) => v !== undefined)
+  )
   await updateDoc(doc(db(), 'productos', id), {
-    ...data,
+    ...clean,
     updatedAt: serverTimestamp(),
   })
 }
