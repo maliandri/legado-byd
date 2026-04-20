@@ -132,57 +132,56 @@ function AdminPanel() {
     <div style={{ minHeight: '100vh', backgroundColor: '#F9EDD3' }}>
       {/* Header */}
       <header style={{ backgroundColor: '#3D1A05', borderBottom: '3px solid #C4A040' }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <ShoppingBag size={20} style={{ color: '#C4A040' }} />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <ShoppingBag size={18} style={{ color: '#C4A040', flexShrink: 0 }} />
             <span
               style={{
                 fontFamily: "'Playfair Display', serif",
                 color: '#F2E6C8',
-                fontSize: '1.3rem',
                 fontWeight: 700,
               }}
+              className="text-base sm:text-xl truncate"
             >
-              Legado Bazar y Deco — Admin
+              <span className="hidden sm:inline">Legado Bazar y Deco — </span>Admin
             </span>
           </div>
-          <div className="flex items-center gap-3">
-            <span style={{ color: '#DDD0A8', fontSize: '0.82rem' }}>{user?.email}</span>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span className="hidden md:block" style={{ color: '#DDD0A8', fontSize: '0.78rem' }}>{user?.email}</span>
             <button
               onClick={signOut}
               className="flex items-center gap-1.5 px-3 py-2 rounded-sm text-sm font-semibold hover:opacity-80 transition-opacity"
               style={{ border: '1px solid rgba(196,160,64,0.5)', color: '#F2E6C8' }}
             >
               <LogOut size={14} />
-              Salir
+              <span className="hidden sm:inline">Salir</span>
             </button>
           </div>
         </div>
       </header>
 
       {/* Tabs */}
-      <div
-        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
-        style={{ backgroundColor: '#F2E6C8', borderBottom: '1px solid #DDD0A8' }}
-      >
-        <div className="flex gap-1">
-          <button style={tabStyle(tab === 'productos')} onClick={() => setTab('productos')}>
-            <LayoutGrid size={15} className="inline mr-1.5" />
-            Productos
-          </button>
-          <button style={tabStyle(tab === 'categorias')} onClick={() => setTab('categorias')}>
-            <ShoppingBag size={15} className="inline mr-1.5" />
-            Categorías
-          </button>
-          <button style={tabStyle(tab === 'emails')} onClick={() => setTab('emails')}>
-            <Mail size={15} className="inline mr-1.5" />
-            Emails
-          </button>
+      <div style={{ backgroundColor: '#F2E6C8', borderBottom: '1px solid #DDD0A8' }}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 overflow-x-auto">
+          <div className="flex gap-1 min-w-max">
+            <button style={tabStyle(tab === 'productos')} onClick={() => setTab('productos')}>
+              <LayoutGrid size={15} className="inline mr-1.5" />
+              Productos
+            </button>
+            <button style={tabStyle(tab === 'categorias')} onClick={() => setTab('categorias')}>
+              <ShoppingBag size={15} className="inline mr-1.5" />
+              Categorías
+            </button>
+            <button style={tabStyle(tab === 'emails')} onClick={() => setTab('emails')}>
+              <Mail size={15} className="inline mr-1.5" />
+              Emails
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Contenido */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
         {tab === 'productos' && (
           loadingProds ? (
             <div className="text-center py-16">
@@ -194,59 +193,48 @@ function AdminPanel() {
             </div>
           ) : (
             <>
-              <div className="flex items-center justify-end gap-3 mb-4">
-                {syncMsg && (
-                  <span
-                    className="text-sm px-3 py-1.5 rounded-sm"
-                    style={{
-                      backgroundColor: syncMsg.startsWith('✓') ? '#C8DEC8' : '#F5CAAA',
-                      color: '#3D1A05',
-                    }}
-                  >
-                    {syncMsg}
-                  </span>
-                )}
+              {syncMsg && (
+                <div className="mb-3 px-3 py-2 rounded-sm text-sm"
+                  style={{ backgroundColor: syncMsg.startsWith('✓') ? '#C8DEC8' : '#F5CAAA', color: '#3D1A05' }}>
+                  {syncMsg}
+                </div>
+              )}
+              <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 mb-4">
                 <button
                   onClick={handleGenerarDescripciones}
                   disabled={generatingDesc}
-                  className="flex items-center gap-2 px-4 py-2 rounded-sm text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-50"
+                  className="flex items-center justify-center gap-2 px-3 py-2 rounded-sm text-xs sm:text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-50"
                   style={{ backgroundColor: '#6B3A1A', color: '#F2E6C8' }}
                 >
-                  {generatingDesc ? <RefreshCw size={14} className="animate-spin" /> : <span style={{ fontSize: '12px' }}>✦</span>}
-                  {generatingDesc ? 'Generando...' : 'Generar descripciones IA'}
+                  {generatingDesc ? <RefreshCw size={13} className="animate-spin" /> : <span style={{ fontSize: '11px' }}>✦</span>}
+                  {generatingDesc ? 'Generando...' : 'Descripciones IA'}
                 </button>
                 <button
                   onClick={() => handleImportSheets(true)}
                   disabled={importingSheets}
-                  className="flex items-center gap-2 px-4 py-2 rounded-sm text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-50"
+                  className="flex items-center justify-center gap-2 px-3 py-2 rounded-sm text-xs sm:text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-50"
                   style={{ backgroundColor: '#A0622A', color: '#F2E6C8' }}
                 >
-                  {importingSheets ? <RefreshCw size={14} className="animate-spin" /> : <FileSpreadsheet size={14} />}
-                  Resetear y publicar
+                  {importingSheets ? <RefreshCw size={13} className="animate-spin" /> : <FileSpreadsheet size={13} />}
+                  Resetear
                 </button>
                 <button
                   onClick={() => handleImportSheets(false)}
                   disabled={importingSheets}
-                  className="flex items-center gap-2 px-4 py-2 rounded-sm text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-50"
+                  className="flex items-center justify-center gap-2 px-3 py-2 rounded-sm text-xs sm:text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-50"
                   style={{ backgroundColor: '#C4A040', color: '#3D1A05' }}
                 >
-                  {importingSheets
-                    ? <RefreshCw size={14} className="animate-spin" />
-                    : <FileSpreadsheet size={14} />
-                  }
-                  {importingSheets ? 'Publicando...' : 'Publicar (Sheet → Firestore)'}
+                  {importingSheets ? <RefreshCw size={13} className="animate-spin" /> : <FileSpreadsheet size={13} />}
+                  {importingSheets ? 'Publicando...' : 'Publicar Sheet'}
                 </button>
                 <button
                   onClick={handleSyncSheets}
                   disabled={syncingSheets}
-                  className="flex items-center gap-2 px-4 py-2 rounded-sm text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-50"
+                  className="flex items-center justify-center gap-2 px-3 py-2 rounded-sm text-xs sm:text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-50"
                   style={{ backgroundColor: '#4A5E1A', color: '#F2E6C8' }}
                 >
-                  {syncingSheets
-                    ? <RefreshCw size={14} className="animate-spin" />
-                    : <FileSpreadsheet size={14} />
-                  }
-                  {syncingSheets ? 'Guardando backup...' : 'Backup (Firestore → Sheet)'}
+                  {syncingSheets ? <RefreshCw size={13} className="animate-spin" /> : <FileSpreadsheet size={13} />}
+                  {syncingSheets ? 'Guardando...' : 'Backup Sheet'}
                 </button>
               </div>
               <BulkImageUpload productos={productos} onDone={refresh} />
