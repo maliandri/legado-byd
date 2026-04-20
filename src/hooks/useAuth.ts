@@ -6,6 +6,10 @@ import {
   signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
+  updateProfile,
   GoogleAuthProvider,
   signOut as firebaseSignOut,
   User,
@@ -92,6 +96,45 @@ export function useAuth() {
     }
   }
 
+  async function signInWithEmail(email: string, password: string): Promise<{ error?: string }> {
+    try {
+      await signInWithEmailAndPassword(getFirebaseAuth(), email, password)
+      return {}
+    } catch (err: any) {
+      const msg: Record<string, string> = {
+        'auth/user-not-found': 'No existe una cuenta con ese email.',
+        'auth/wrong-password': 'Contraseña incorrecta.',
+        'auth/invalid-credential': 'Email o contraseña incorrectos.',
+        'auth/too-many-requests': 'Demasiados intentos. Esperá unos minutos.',
+      }
+      return { error: msg[err.code] || err.message }
+    }
+  }
+
+  async function signUpWithEmail(email: string, password: string, nombre: string): Promise<{ error?: string }> {
+    try {
+      const cred = await createUserWithEmailAndPassword(getFirebaseAuth(), email, password)
+      await updateProfile(cred.user, { displayName: nombre })
+      return {}
+    } catch (err: any) {
+      const msg: Record<string, string> = {
+        'auth/email-already-in-use': 'Ya existe una cuenta con ese email. Iniciá sesión.',
+        'auth/weak-password': 'La contraseña debe tener al menos 6 caracteres.',
+        'auth/invalid-email': 'El email no es válido.',
+      }
+      return { error: msg[err.code] || err.message }
+    }
+  }
+
+  async function resetPassword(email: string): Promise<{ error?: string }> {
+    try {
+      await sendPasswordResetEmail(getFirebaseAuth(), email)
+      return {}
+    } catch (err: any) {
+      return { error: 'No se pudo enviar el email. Verificá la dirección.' }
+    }
+  }
+
   async function signOut() {
     await firebaseSignOut(getFirebaseAuth())
     setProfile(null)
@@ -108,6 +151,9 @@ export function useAuth() {
     redirectError,
     signInWithGoogle,
     signInCustomer: signInWithGoogle,
+    signInWithEmail,
+    signUpWithEmail,
+    resetPassword,
     signOut, refreshProfile,
   }
 }
