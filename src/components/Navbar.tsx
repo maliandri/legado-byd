@@ -163,6 +163,30 @@ export default function Navbar() {
               </a>
             ))
           )}
+
+          {/* Separador */}
+          <div style={{ borderTop: '1px solid #C4A040', opacity: 0.4, margin: '4px 0' }} />
+
+          {/* Botón auth */}
+          {isAdmin ? (
+            <a href="/admin" onClick={() => setOpen(false)}
+              className="flex items-center gap-2 py-2 text-sm font-semibold"
+              style={{ color: '#3D1A05' }}>
+              <UserCircle size={16} /> Admin
+            </a>
+          ) : isCustomer ? (
+            <a href="/mi-cuenta" onClick={() => setOpen(false)}
+              className="flex items-center gap-2 py-2 text-sm font-semibold"
+              style={{ color: '#4A5E1A' }}>
+              <UserCircle size={16} /> {profile?.nombre?.split(' ')[0] || 'Mi cuenta'}
+            </a>
+          ) : (
+            <a href="/login" onClick={() => setOpen(false)}
+              className="flex items-center gap-2 py-2 text-sm font-semibold"
+              style={{ color: '#A0622A' }}>
+              <UserCircle size={16} /> Ingresar
+            </a>
+          )}
         </div>
       )}
     </nav>
