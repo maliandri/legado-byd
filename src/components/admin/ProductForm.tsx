@@ -42,6 +42,7 @@ export default function ProductForm({ producto, categorias, onClose, onSaved }: 
   const [generando, setGenerando] = useState(false)
   const [error, setError] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
+  const cameraRef = useRef<HTMLInputElement>(null)
 
   function applyFile(f: File) {
     setFile(f)
@@ -323,24 +324,39 @@ export default function ProductForm({ producto, categorias, onClose, onSaved }: 
           {/* Imagen */}
           <div>
             <label style={labelStyle}>Imagen</label>
-            <div
-              className="flex flex-col items-center gap-3 p-4 rounded-sm cursor-pointer hover:opacity-80 transition-opacity"
-              style={{ border: '2px dashed #DDD0A8', backgroundColor: '#F2E6C8' }}
-              onClick={() => fileRef.current?.click()}
-            >
-              {preview ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={preview} alt="Preview" className="max-h-32 object-contain rounded" />
-              ) : (
-                <>
-                  <Upload size={24} style={{ color: '#A0622A' }} />
-                  <span style={{ color: '#6B3A1A', fontSize: '0.85rem' }}>
-                    Clic para subir, foto de cámara o pegá Ctrl+V
-                  </span>
-                </>
-              )}
-              <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
+
+            {/* Preview */}
+            {preview && (
+              <div className="mb-3 flex justify-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={preview} alt="Preview" className="max-h-40 object-contain rounded" style={{ border: '1px solid #DDD0A8' }} />
+              </div>
+            )}
+
+            {/* Botones de carga */}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => cameraRef.current?.click()}
+                className="flex items-center justify-center gap-2 py-3 rounded-sm text-sm font-semibold transition-opacity hover:opacity-80"
+                style={{ border: '2px solid #C4A040', backgroundColor: '#F2E6C8', color: '#3D1A05' }}
+              >
+                <span style={{ fontSize: '1.2rem' }}>📷</span>
+                Cámara
+              </button>
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                className="flex items-center justify-center gap-2 py-3 rounded-sm text-sm font-semibold transition-opacity hover:opacity-80"
+                style={{ border: '2px dashed #DDD0A8', backgroundColor: '#F2E6C8', color: '#6B3A1A' }}
+              >
+                <Upload size={16} />
+                Galería
+              </button>
             </div>
+
+            <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFile} />
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
           </div>
 
           {/* Botones */}
