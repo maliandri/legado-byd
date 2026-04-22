@@ -26,6 +26,7 @@ export async function getProductos(): Promise<Producto[]> {
     return {
       id: d.id,
       ...data,
+      imagenes: data.imagenes ?? (data.imagen ? [data.imagen] : []),
       createdAt: (data.createdAt as Timestamp)?.toDate() ?? new Date(),
       updatedAt: (data.updatedAt as Timestamp)?.toDate() ?? new Date(),
     } as Producto

@@ -65,8 +65,10 @@ export default function ProductoPage() {
     )
   }
 
-  // Imágenes (preparado para múltiples en el futuro)
-  const imagenes = [producto.imagen].filter(Boolean)
+  // Usar array de imágenes si existe, sino caer a la foto principal
+  const imagenes = (producto.imagenes && producto.imagenes.length > 0)
+    ? producto.imagenes
+    : [producto.imagen].filter(Boolean)
   const hasMultiple = imagenes.length > 1
   const imgActual = imagenes[imgIndex] || null
 
