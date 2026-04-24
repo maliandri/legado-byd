@@ -14,12 +14,12 @@ import {
   updateCategoria,
   deleteCategoria,
 } from '@/lib/firebase/firestore'
-import Link from 'next/link'
 import { LogOut, ShoppingBag, LayoutGrid, RefreshCw, Plus, Pencil, Trash2, FileSpreadsheet, Mail, Users, ClipboardList } from 'lucide-react'
+import OperacionesPanel from '@/components/admin/operaciones/OperacionesPanel'
 import type { Categoria } from '@/types'
 import { useEffect } from 'react'
 
-type Tab = 'productos' | 'categorias' | 'emails' | 'usuarios'
+type Tab = 'productos' | 'categorias' | 'emails' | 'usuarios' | 'operaciones'
 
 export default function AdminPage() {
   return (
@@ -182,12 +182,10 @@ function AdminPanel() {
               <Users size={15} className="inline mr-1.5" />
               Usuarios
             </button>
-            <Link href="/admin/operaciones"
-              className="flex items-center gap-1.5 px-5 py-2.5 text-sm font-semibold hover:opacity-80 transition-opacity"
-              style={{ color: '#4A5E1A', borderBottom: '3px solid transparent' }}>
-              <ClipboardList size={15} />
+            <button style={tabStyle(tab === 'operaciones')} onClick={() => setTab('operaciones')}>
+              <ClipboardList size={15} className="inline mr-1.5" />
               Operaciones
-            </Link>
+            </button>
           </div>
         </div>
       </div>
@@ -269,6 +267,7 @@ function AdminPanel() {
 
         {tab === 'emails' && <EmailMasivo />}
         {tab === 'usuarios' && <UsuariosPanel />}
+        {tab === 'operaciones' && <OperacionesPanel />}
       </main>
     </div>
   )
