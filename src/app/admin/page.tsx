@@ -14,7 +14,8 @@ import {
   updateCategoria,
   deleteCategoria,
 } from '@/lib/firebase/firestore'
-import { LogOut, ShoppingBag, LayoutGrid, RefreshCw, Plus, Pencil, Trash2, FileSpreadsheet, Mail, Users } from 'lucide-react'
+import Link from 'next/link'
+import { LogOut, ShoppingBag, LayoutGrid, RefreshCw, Plus, Pencil, Trash2, FileSpreadsheet, Mail, Users, ClipboardList } from 'lucide-react'
 import type { Categoria } from '@/types'
 import { useEffect } from 'react'
 
@@ -181,6 +182,12 @@ function AdminPanel() {
               <Users size={15} className="inline mr-1.5" />
               Usuarios
             </button>
+            <Link href="/admin/operaciones"
+              className="flex items-center gap-1.5 px-5 py-2.5 text-sm font-semibold hover:opacity-80 transition-opacity"
+              style={{ color: '#4A5E1A', borderBottom: '3px solid transparent' }}>
+              <ClipboardList size={15} />
+              Operaciones
+            </Link>
           </div>
         </div>
       </div>

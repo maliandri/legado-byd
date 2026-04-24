@@ -46,6 +46,48 @@ export interface Usuario {
   createdAt: Date
 }
 
+// ── Órdenes (MercadoPago + WhatsApp) ──────────────────────────────────────
+
+export type OrdenEstado =
+  | 'pendiente_pago'
+  | 'pagado'
+  | 'en_preparacion'
+  | 'enviado'
+  | 'entregado'
+  | 'cancelado'
+
+export type OrdenCanal = 'mercadopago' | 'whatsapp'
+
+export interface OrdenItem {
+  productoId: string
+  nombre: string
+  cantidad: number
+  precio: number
+}
+
+export interface Order {
+  id: string
+  // Cliente
+  cliente_uid?: string
+  email_cliente?: string
+  nombre_cliente?: string
+  // Pago
+  id_transaccion?: string
+  metodo_pago?: string
+  canal: OrdenCanal
+  // Estado logístico
+  estado: OrdenEstado
+  // Items
+  items: OrdenItem[]
+  monto_total: number
+  // Timestamps
+  createdAt: Date
+  updatedAt?: Date
+  // Logística
+  bultos?: number
+  notas?: string
+}
+
 export interface ItemPedido {
   productoId: string
   nombre: string
