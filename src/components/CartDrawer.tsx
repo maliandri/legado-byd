@@ -11,7 +11,8 @@ import { decrementStock } from '@/lib/firebase/firestore'
 async function enviarEmailsPedido(params: {
   email: string
   nombre: string
-  items: { nombre: string; cantidad: number; precio: number }[]
+  uid?: string
+  items: { productoId: string; nombre: string; cantidad: number; precio: number }[]
   total: number
 }) {
   try {
@@ -60,7 +61,13 @@ export default function CartDrawer() {
         enviarEmailsPedido({
           email: user.email,
           nombre: profile?.nombre || user.displayName || 'Cliente',
-          items: emailItems,
+          uid: user.uid,
+          items: items.map(i => ({
+            productoId: i.producto.id,
+            nombre: i.producto.nombre,
+            precio: i.producto.precio,
+            cantidad: i.cantidad,
+          })),
           total: totalPrecio,
         })
       }

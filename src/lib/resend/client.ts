@@ -126,7 +126,9 @@ export async function sendPedidoClienteEmail(params: {
   nombre: string
   items: { nombre: string; cantidad: number; precio: number }[]
   total: number
+  tipo?: 'whatsapp' | 'mercadopago'
 }): Promise<void> {
+  const esMp = params.tipo === 'mercadopago'
   const lineas = params.items.map(i => `
     <tr>
       <td style="padding:8px 12px; color:#3D1A05; border-bottom:1px solid #EDD9A3;">${i.nombre}</td>
@@ -140,13 +142,15 @@ export async function sendPedidoClienteEmail(params: {
   await resend().emails.send({
     from: FROM,
     to: params.email,
-    subject: 'Tu pedido fue enviado a Legado ByD',
+    subject: esMp ? '¡Pago confirmado! Tu pedido está en preparación — Legado ByD' : 'Tu pedido fue enviado a Legado ByD',
     html: `<div style="${baseStyle}">
-      ${header('Pedido enviado ✓')}
+      ${header(esMp ? 'Pago confirmado ✓' : 'Pedido enviado ✓')}
       <div style="padding:28px 32px;">
         <p style="color:#3D1A05; margin-bottom:20px;">
-          Hola <strong>${params.nombre}</strong>, recibimos tu pedido por WhatsApp.
-          En breve un asesor te contactará para confirmar disponibilidad y coordinar la entrega.
+          Hola <strong>${params.nombre}</strong>, ${esMp
+            ? 'tu pago fue aprobado. Tu pedido está siendo preparado y te avisaremos cuando esté listo para retirar o enviar.'
+            : 'recibimos tu pedido por WhatsApp. En breve un asesor te contactará para confirmar disponibilidad y coordinar la entrega.'
+          }
         </p>
         <table style="width:100%; border-collapse:collapse; margin-bottom:16px;">
           <thead>

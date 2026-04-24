@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { MercadoPagoConfig, Payment } from 'mercadopago'
 import { adminDb } from '@/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
+import { sendPedidoClienteEmail, sendPedidoAdminEmail } from '@/lib/resend/client'
 
 export const runtime = 'nodejs'
 
@@ -14,7 +15,6 @@ export async function POST(req: Request) {
     const body = await req.json()
     const { type, data } = body
 
-    // Solo procesar eventos de pago
     if (type !== 'payment' || !data?.id) {
       return NextResponse.json({ ok: true })
     }
@@ -22,11 +22,10 @@ export async function POST(req: Request) {
     const payment = new Payment(client)
     const pagoData = await payment.get({ id: data.id })
 
-    const status = pagoData.status // approved | rejected | pending | in_process
+    const status = pagoData.status
     const externalRef = pagoData.external_reference || ''
     const [uid, ordenId] = externalRef.split(':')
 
-    // Datos del pago
     const paymentInfo = {
       id_transaccion: String(pagoData.id),
       status,
@@ -37,24 +36,27 @@ export async function POST(req: Request) {
     }
 
     if (status === 'approved') {
-      // 1. Actualizar orden existente en subcolección pedidos/{uid}/ordenes/{ordenId}
-      if (uid && uid !== 'anonimo' && ordenId) {
-        try {
-          await adminDb()
-            .collection('pedidos').doc(uid)
-            .collection('ordenes').doc(ordenId)
-            .update({ estado: 'pagado', ...paymentInfo })
-        } catch {
-          // La orden puede no existir en subcolección — continuar
-        }
-      }
-
-      // 2. Upsert en colección plana `orders` para el panel admin
       const orderRef = ordenId
         ? adminDb().collection('orders').doc(ordenId)
         : adminDb().collection('orders').doc()
 
+      // Obtener datos de la orden (items, cliente) antes de actualizar
       const snap = await orderRef.get()
+      const orderData = snap.exists ? snap.data() : null
+      const orderItems: any[] = orderData?.items || []
+      const clientEmail = pagoData.payer?.email || orderData?.email_cliente || ''
+      const clientName = orderData?.nombre_cliente || ''
+
+      // 1. Actualizar subcol pedidos/{uid}/ordenes/{ordenId}
+      if (uid && uid !== 'anonimo' && ordenId) {
+        await adminDb()
+          .collection('pedidos').doc(uid)
+          .collection('ordenes').doc(ordenId)
+          .update({ estado: 'pagado', ...paymentInfo })
+          .catch(() => {})
+      }
+
+      // 2. Upsert en colección plana orders
       if (snap.exists) {
         await orderRef.update({ estado: 'pagado', ...paymentInfo })
       } else {
@@ -73,6 +75,39 @@ export async function POST(req: Request) {
         })
       }
 
+      // 3. Descontar stock de cada producto
+      if (orderItems.length > 0) {
+        const batch = adminDb().batch()
+        for (const item of orderItems) {
+          if (item.productoId) {
+            batch.update(
+              adminDb().collection('productos').doc(item.productoId),
+              { stock: FieldValue.increment(-item.cantidad) }
+            )
+          }
+        }
+        await batch.commit().catch(e => console.error('Stock decrement error:', e))
+      }
+
+      // 4. Enviar email de confirmación al cliente
+      if (clientEmail && orderItems.length > 0) {
+        await Promise.all([
+          sendPedidoClienteEmail({
+            email: clientEmail,
+            nombre: clientName || 'Cliente',
+            items: orderItems.map((i: any) => ({ nombre: i.nombre, cantidad: i.cantidad, precio: i.precio })),
+            total: pagoData.transaction_amount || 0,
+            tipo: 'mercadopago',
+          }),
+          sendPedidoAdminEmail({
+            clienteNombre: clientName || clientEmail,
+            clienteEmail: clientEmail,
+            items: orderItems.map((i: any) => ({ nombre: i.nombre, cantidad: i.cantidad, precio: i.precio })),
+            total: pagoData.transaction_amount || 0,
+          }),
+        ]).catch(e => console.error('Email error:', e))
+      }
+
       console.log(`✓ Pago aprobado: ${pagoData.id} — orden ${ordenId}`)
     } else if (status === 'rejected' || status === 'cancelled') {
       if (uid && uid !== 'anonimo' && ordenId) {
@@ -82,17 +117,20 @@ export async function POST(req: Request) {
           .update({ estado: 'cancelado', ...paymentInfo })
           .catch(() => {})
       }
+      if (ordenId) {
+        await adminDb().collection('orders').doc(ordenId)
+          .update({ estado: 'cancelado', ...paymentInfo })
+          .catch(() => {})
+      }
     }
 
     return NextResponse.json({ ok: true })
   } catch (err: any) {
     console.error('webhook MP error:', err)
-    // Siempre devolver 200 a MP para que no reintente indefinidamente
     return NextResponse.json({ ok: true })
   }
 }
 
-// MP envía GET para verificar que el endpoint existe
 export async function GET() {
   return NextResponse.json({ ok: true })
 }

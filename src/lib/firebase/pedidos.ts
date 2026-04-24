@@ -6,12 +6,12 @@ import {
   orderBy,
   serverTimestamp,
 } from 'firebase/firestore'
-import { db } from './config'
+import { getFirebaseDb } from './config'
 import type { ItemPedido, Pedido } from '@/types'
 
 export async function savePedido(uid: string, items: ItemPedido[]): Promise<string> {
   const total = items.reduce((sum, i) => sum + i.precio * i.cantidad, 0)
-  const ref = await addDoc(collection(db, 'pedidos', uid, 'ordenes'), {
+  const ref = await addDoc(collection(getFirebaseDb(), 'pedidos', uid, 'ordenes'), {
     uid,
     items,
     total,
@@ -23,7 +23,7 @@ export async function savePedido(uid: string, items: ItemPedido[]): Promise<stri
 
 export async function getPedidos(uid: string): Promise<Pedido[]> {
   const q = query(
-    collection(db, 'pedidos', uid, 'ordenes'),
+    collection(getFirebaseDb(), 'pedidos', uid, 'ordenes'),
     orderBy('createdAt', 'desc')
   )
   const snap = await getDocs(q)

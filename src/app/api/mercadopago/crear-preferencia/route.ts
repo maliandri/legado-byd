@@ -15,22 +15,45 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'El carrito está vacío' }, { status: 400 })
     }
 
-    // Guardar pedido en Firestore con estado pendiente_pago
     const total = items.reduce((s: number, i: any) => s + i.precio * i.cantidad, 0)
-    const ref = await adminDb()
+
+    // Crear doc ref con ID determinístico para sincronizar subcol + colección plana
+    const subRef = adminDb()
       .collection('pedidos').doc(uid || 'anonimo')
-      .collection('ordenes')
-      .add({
-        uid: uid || null,
-        email: email || null,
-        items,
-        total,
-        estado: 'pendiente_pago',
-        canal: 'mercadopago',
-        createdAt: FieldValue.serverTimestamp(),
-      })
-    const ordenId = ref.id
+      .collection('ordenes').doc()
+    const ordenId = subRef.id
     const externalRef = uid ? `${uid}:${ordenId}` : `anonimo:${ordenId}`
+
+    const orderData = {
+      uid: uid || null,
+      email_cliente: email || null,
+      nombre_cliente: nombre || null,
+      items: items.map((i: any) => ({
+        productoId: i.productoId,
+        nombre: i.nombre,
+        cantidad: i.cantidad,
+        precio: i.precio,
+      })),
+      monto_total: total,
+      estado: 'pendiente_pago',
+      canal: 'mercadopago',
+      createdAt: FieldValue.serverTimestamp(),
+    }
+
+    // Escribir en subcol + colección plana con el mismo ID
+    await Promise.all([
+      subRef.set({ ...orderData }),
+      adminDb().collection('orders').doc(ordenId).set({
+        cliente_uid: uid || null,
+        email_cliente: email || null,
+        nombre_cliente: nombre || null,
+        canal: 'mercadopago',
+        estado: 'pendiente_pago',
+        items: orderData.items,
+        monto_total: total,
+        createdAt: FieldValue.serverTimestamp(),
+      }),
+    ])
 
     // Crear preferencia en MercadoPago
     const client = new MercadoPagoConfig({
