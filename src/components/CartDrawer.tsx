@@ -1,6 +1,7 @@
 'use client'
 
-import { X, Plus, Minus, Trash2, ShoppingCart } from 'lucide-react'
+import { useState } from 'react'
+import { X, Plus, Minus, Trash2, ShoppingCart, Loader2 } from 'lucide-react'
 import Image from 'next/image'
 import { useCart } from '@/context/CartContext'
 import { useAuth } from '@/hooks/useAuth'
@@ -29,6 +30,8 @@ const whatsapp = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '5492990000000'
 export default function CartDrawer() {
   const { items, open, totalItems, totalPrecio, setOpen, removeItem, increment, decrement, clearCart } = useCart()
   const { user, isCustomer, profile } = useAuth()
+  const [loadingMP, setLoadingMP] = useState(false)
+  const [mpError, setMpError] = useState('')
 
   async function handlePedirPorWhatsApp() {
     if (items.length === 0) return
@@ -78,6 +81,36 @@ export default function CartDrawer() {
       `¡Hola! Quisiera hacer el siguiente pedido desde Legado Bazar y Deco:\n\n${lineas.join('\n')}${total}\n\n¿Está disponible?`
     )
     window.open(`https://wa.me/${whatsapp}?text=${mensaje}`, '_blank', 'noopener,noreferrer')
+  }
+
+  async function handlePagarConMP() {
+    if (items.length === 0) return
+    setLoadingMP(true)
+    setMpError('')
+    try {
+      const mpItems = items.map(i => ({
+        productoId: i.producto.id,
+        nombre: i.producto.nombre,
+        precio: i.producto.precio,
+        cantidad: i.cantidad,
+      }))
+      const res = await fetch('/api/mercadopago/crear-preferencia', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          uid: user?.uid || null,
+          email: user?.email || null,
+          nombre: profile?.nombre || user?.displayName || 'Cliente',
+          items: mpItems,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Error al iniciar el pago')
+      window.location.href = data.init_point
+    } catch (err: any) {
+      setMpError(err.message || 'No se pudo iniciar el pago. Intentá de nuevo.')
+      setLoadingMP(false)
+    }
   }
 
   return (
@@ -282,6 +315,30 @@ export default function CartDrawer() {
               >
                 ${totalPrecio.toLocaleString('es-AR')}
               </span>
+            </div>
+
+            {/* Botón Pagar con MercadoPago */}
+            <button
+              onClick={handlePagarConMP}
+              disabled={loadingMP}
+              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-sm font-bold text-sm transition-opacity hover:opacity-90 disabled:opacity-60"
+              style={{ backgroundColor: '#009EE3', color: '#fff' }}
+            >
+              {loadingMP
+                ? <Loader2 size={16} className="animate-spin" />
+                : <svg viewBox="0 0 24 24" fill="currentColor" width={18} height={18}><path d="M21.5 5.5H2.5C1.12 5.5 0 6.62 0 8v8c0 1.38 1.12 2.5 2.5 2.5h19c1.38 0 2.5-1.12 2.5-2.5V8c0-1.38-1.12-2.5-2.5-2.5zM8.5 14.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5zm7 0c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+              }
+              {loadingMP ? 'Redirigiendo...' : 'Pagar con MercadoPago'}
+            </button>
+
+            {mpError && (
+              <p className="text-xs text-center" style={{ color: '#C0392B' }}>{mpError}</p>
+            )}
+
+            <div className="flex items-center gap-2">
+              <div style={{ flex: 1, height: 1, backgroundColor: '#DDD0A8' }} />
+              <span style={{ fontSize: '0.7rem', color: '#A0622A' }}>o</span>
+              <div style={{ flex: 1, height: 1, backgroundColor: '#DDD0A8' }} />
             </div>
 
             <p style={{ color: '#A0622A', fontSize: '0.75rem' }}>

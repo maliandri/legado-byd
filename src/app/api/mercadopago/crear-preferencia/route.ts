@@ -1,0 +1,70 @@
+import { NextResponse } from 'next/server'
+import { MercadoPagoConfig, Preference } from 'mercadopago'
+import { adminDb } from '@/lib/firebase/admin'
+import { FieldValue } from 'firebase-admin/firestore'
+
+export const runtime = 'nodejs'
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://legadobyd.com'
+
+export async function POST(req: Request) {
+  try {
+    const { uid, email, nombre, items } = await req.json()
+
+    if (!items || items.length === 0) {
+      return NextResponse.json({ error: 'El carrito está vacío' }, { status: 400 })
+    }
+
+    // Guardar pedido en Firestore con estado pendiente_pago
+    const total = items.reduce((s: number, i: any) => s + i.precio * i.cantidad, 0)
+    const ref = await adminDb()
+      .collection('pedidos').doc(uid || 'anonimo')
+      .collection('ordenes')
+      .add({
+        uid: uid || null,
+        email: email || null,
+        items,
+        total,
+        estado: 'pendiente_pago',
+        canal: 'mercadopago',
+        createdAt: FieldValue.serverTimestamp(),
+      })
+    const ordenId = ref.id
+    const externalRef = uid ? `${uid}:${ordenId}` : `anonimo:${ordenId}`
+
+    // Crear preferencia en MercadoPago
+    const client = new MercadoPagoConfig({
+      accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN!,
+    })
+    const preference = new Preference(client)
+
+    const mpItems = items.map((i: any) => ({
+      id: i.productoId,
+      title: i.nombre,
+      quantity: i.cantidad,
+      unit_price: i.precio,
+      currency_id: 'ARS',
+    }))
+
+    const result = await preference.create({
+      body: {
+        items: mpItems,
+        payer: { email: email || undefined, name: nombre || undefined },
+        back_urls: {
+          success: `${APP_URL}/pago/exitoso`,
+          failure: `${APP_URL}/pago/fallido`,
+          pending: `${APP_URL}/pago/pendiente`,
+        },
+        auto_return: 'approved',
+        external_reference: externalRef,
+        statement_descriptor: 'Legado ByD',
+        metadata: { uid, ordenId },
+      },
+    })
+
+    return NextResponse.json({ init_point: result.init_point, ordenId })
+  } catch (err: any) {
+    console.error('crear-preferencia error:', err)
+    return NextResponse.json({ error: err.message || 'Error al crear preferencia' }, { status: 500 })
+  }
+}
