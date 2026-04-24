@@ -3,6 +3,7 @@ import { MercadoPagoConfig, Payment } from 'mercadopago'
 import { adminDb } from '@/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 import { sendPedidoClienteEmail, sendPedidoAdminEmail } from '@/lib/resend/client'
+import { createHmac } from 'node:crypto'
 
 export const runtime = 'nodejs'
 
@@ -10,9 +11,38 @@ const client = new MercadoPagoConfig({
   accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN!,
 })
 
+function verificarFirmaMP(req: Request, rawBody: string): boolean {
+  const secret = process.env.MERCADOPAGO_WEBHOOK_SECRET
+  if (!secret) return true // sin secret configurado, dejar pasar
+
+  const xSignature = req.headers.get('x-signature') || ''
+  const xRequestId = req.headers.get('x-request-id') || ''
+
+  // Formato: ts=....,v1=....
+  const parts = Object.fromEntries(xSignature.split(',').map(p => p.split('=')))
+  const ts = parts['ts']
+  const v1 = parts['v1']
+  if (!ts || !v1) return false
+
+  // Buscar data.id en query params
+  const url = new URL(req.url)
+  const dataId = url.searchParams.get('data.id') || ''
+
+  const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts};`
+  const hmac = createHmac('sha256', secret).update(manifest).digest('hex')
+  return hmac === v1
+}
+
 export async function POST(req: Request) {
   try {
-    const body = await req.json()
+    const rawBody = await req.text()
+    const body = JSON.parse(rawBody)
+
+    if (!verificarFirmaMP(req, rawBody)) {
+      console.warn('Webhook MP: firma inválida')
+      return NextResponse.json({ error: 'Firma inválida' }, { status: 401 })
+    }
+
     const { type, data } = body
 
     if (type !== 'payment' || !data?.id) {
