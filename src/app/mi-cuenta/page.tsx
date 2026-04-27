@@ -239,7 +239,7 @@ export default function MiCuentaPage() {
                     <div style={{ padding: '12px' }}>
                       <p style={{ fontWeight: 600, color: '#3D1A05', fontSize: '0.9rem' }}>{p.nombre}</p>
                       <p style={{ color: '#C4A040', fontWeight: 700, fontSize: '0.95rem', marginTop: 4 }}>
-                        ${p.precio.toLocaleString('es-AR')}
+                        ${(p.precio ?? 0).toLocaleString('es-AR')}
                       </p>
                     </div>
                   </div>
@@ -274,12 +274,12 @@ export default function MiCuentaPage() {
                     {p.items.map((item, i) => (
                       <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem', color: '#3D1A05', padding: '3px 0' }}>
                         <span>{item.nombre} × {item.cantidad}</span>
-                        <span>${(item.precio * item.cantidad).toLocaleString('es-AR')}</span>
+                        <span>${((item.precio ?? 0) * (item.cantidad ?? 1)).toLocaleString('es-AR')}</span>
                       </div>
                     ))}
                     <div style={{ borderTop: '1px solid #EDD9A3', marginTop: 10, paddingTop: 8, display: 'flex', justifyContent: 'space-between', fontWeight: 700, color: '#3D1A05' }}>
                       <span>Total</span>
-                      <span>${p.total.toLocaleString('es-AR')}</span>
+                      <span>${(p.total ?? 0).toLocaleString('es-AR')}</span>
                     </div>
                   </div>
                 ))}

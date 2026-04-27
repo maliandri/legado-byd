@@ -41,8 +41,9 @@ export async function POST(req: Request) {
     }
 
     // Escribir en subcol + colección plana con el mismo ID
+    // subcol usa `total` (igual que savePedido), flat usa `monto_total`
     await Promise.all([
-      subRef.set({ ...orderData }),
+      subRef.set({ ...orderData, total, monto_total: undefined }),
       adminDb().collection('orders').doc(ordenId).set({
         cliente_uid: uid || null,
         email_cliente: email || null,

@@ -33,7 +33,7 @@ export async function getPedidos(uid: string): Promise<Pedido[]> {
       id: d.id,
       uid: data.uid,
       items: data.items,
-      total: data.total,
+      total: data.total ?? data.monto_total ?? 0,
       estado: data.estado,
       createdAt: data.createdAt?.toDate?.() ?? new Date(),
     }
