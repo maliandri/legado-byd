@@ -55,7 +55,17 @@ export async function POST(req: Request) {
     const externalRef = pagoData.external_reference || ''
     const [uid, ordenId] = externalRef.split(':')
 
-    console.log(`[MP webhook] id=${data.id} status=${status} externalRef=${externalRef} ordenId=${ordenId}`)
+    // Escribir debug en Firestore para diagnóstico (se puede borrar después)
+    await adminDb().collection('webhook_debug').add({
+      paymentId: String(data.id),
+      status,
+      externalRef,
+      ordenId: ordenId || null,
+      uid: uid || null,
+      payer: pagoData.payer?.email || null,
+      amount: pagoData.transaction_amount || null,
+      ts: FieldValue.serverTimestamp(),
+    }).catch(() => {})
 
     const paymentInfo = {
       id_transaccion: String(pagoData.id),
