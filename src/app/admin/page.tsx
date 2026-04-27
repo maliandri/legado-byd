@@ -14,12 +14,14 @@ import {
   updateCategoria,
   deleteCategoria,
 } from '@/lib/firebase/firestore'
-import { LogOut, ShoppingBag, LayoutGrid, RefreshCw, Plus, Pencil, Trash2, FileSpreadsheet, Mail, Users, ClipboardList } from 'lucide-react'
+import { LogOut, ShoppingBag, LayoutGrid, RefreshCw, Plus, Pencil, Trash2, FileSpreadsheet, Mail, Users, ClipboardList, ImagePlus, Film } from 'lucide-react'
 import OperacionesPanel from '@/components/admin/operaciones/OperacionesPanel'
+import PublicacionLibre from '@/components/admin/PublicacionLibre'
+import ReelCreator from '@/components/admin/ReelCreator'
 import type { Categoria } from '@/types'
 import { useEffect } from 'react'
 
-type Tab = 'productos' | 'categorias' | 'emails' | 'usuarios' | 'operaciones'
+type Tab = 'productos' | 'categorias' | 'emails' | 'usuarios' | 'operaciones' | 'publicar' | 'reel'
 
 export default function AdminPage() {
   return (
@@ -186,6 +188,14 @@ function AdminPanel() {
               <ClipboardList size={15} className="inline mr-1.5" />
               Operaciones
             </button>
+            <button style={tabStyle(tab === 'publicar')} onClick={() => setTab('publicar')}>
+              <ImagePlus size={15} className="inline mr-1.5" />
+              Publicar
+            </button>
+            <button style={tabStyle(tab === 'reel')} onClick={() => setTab('reel')}>
+              <Film size={15} className="inline mr-1.5" />
+              Reel
+            </button>
           </div>
         </div>
       </div>
@@ -268,6 +278,8 @@ function AdminPanel() {
         {tab === 'emails' && <EmailMasivo />}
         {tab === 'usuarios' && <UsuariosPanel />}
         {tab === 'operaciones' && <OperacionesPanel />}
+        {tab === 'publicar' && <PublicacionLibre />}
+        {tab === 'reel' && <ReelCreator />}
       </main>
     </div>
   )
