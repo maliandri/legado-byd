@@ -55,16 +55,18 @@ export async function POST(req: Request) {
     const externalRef = pagoData.external_reference || ''
     const [uid, ordenId] = externalRef.split(':')
 
+    console.log(`[MP webhook] id=${data.id} status=${status} externalRef=${externalRef} ordenId=${ordenId}`)
+
     const paymentInfo = {
       id_transaccion: String(pagoData.id),
-      status,
+      mp_status: status,
       metodo_pago: pagoData.payment_method_id || '',
       email_cliente: pagoData.payer?.email || '',
       monto_total: pagoData.transaction_amount || 0,
       updatedAt: FieldValue.serverTimestamp(),
     }
 
-    if (status === 'approved') {
+    if (status === 'approved' || status === 'accredited') {
       const orderRef = ordenId
         ? adminDb().collection('orders').doc(ordenId)
         : adminDb().collection('orders').doc()
@@ -138,6 +140,13 @@ export async function POST(req: Request) {
       }
 
       console.log(`✓ Pago aprobado: ${pagoData.id} — orden ${ordenId}`)
+    } else if (status === 'in_process' || status === 'pending' || status === 'authorized') {
+      console.log(`[MP webhook] Pago en proceso: ${pagoData.id} status=${status}`)
+      if (ordenId) {
+        await adminDb().collection('orders').doc(ordenId)
+          .update({ mp_status: status, updatedAt: FieldValue.serverTimestamp() })
+          .catch(() => {})
+      }
     } else if (status === 'rejected' || status === 'cancelled') {
       if (uid && uid !== 'anonimo' && ordenId) {
         await adminDb()
