@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { RefreshCw, Search, Printer, ChevronDown, X, Package, Truck, CheckCircle, Clock, XCircle, CreditCard } from 'lucide-react'
+import { RefreshCw, Search, Printer, X, Package, Truck, CheckCircle, Clock, XCircle, CreditCard, Trash2 } from 'lucide-react'
 import type { Order, OrdenEstado } from '@/types'
 import OrderReceipt from './OrderReceipt'
 
@@ -60,6 +60,19 @@ export default function OperacionesPanel() {
   function showMsg(text: string, ok = true) {
     setMsg(ok ? `✓ ${text}` : `✗ ${text}`)
     setTimeout(() => setMsg(''), 4000)
+  }
+
+  async function handleEliminar(orderId: string) {
+    if (!confirm('¿Eliminar esta orden? Esta acción no se puede deshacer.')) return
+    try {
+      const res = await fetch(`/api/admin/orders/${orderId}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error()
+      setOrders(prev => prev.filter(o => o.id !== orderId))
+      setSelectedOrder(null)
+      showMsg('Orden eliminada')
+    } catch {
+      showMsg('Error al eliminar', false)
+    }
   }
 
   async function handleCambiarEstado(orderId: string, nuevoEstado: OrdenEstado) {
@@ -203,12 +216,21 @@ export default function OperacionesPanel() {
                       {o.createdAt ? new Date(o.createdAt).toLocaleDateString('es-AR') : '—'}
                     </td>
                     <td className="px-4 py-3 text-right" onClick={e => e.stopPropagation()}>
-                      <button
-                        onClick={() => setSelectedOrder(o)}
-                        className="px-2.5 py-1 rounded-sm text-xs font-semibold hover:opacity-80"
-                        style={{ backgroundColor: '#3D1A05', color: '#F2E6C8' }}>
-                        Ver detalle
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => setSelectedOrder(o)}
+                          className="px-2.5 py-1 rounded-sm text-xs font-semibold hover:opacity-80"
+                          style={{ backgroundColor: '#3D1A05', color: '#F2E6C8' }}>
+                          Ver detalle
+                        </button>
+                        <button
+                          onClick={() => handleEliminar(o.id)}
+                          className="p-1.5 rounded-sm hover:opacity-80"
+                          style={{ backgroundColor: '#F5CAAA', color: '#A0622A' }}
+                          title="Eliminar orden">
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -252,6 +274,7 @@ export default function OperacionesPanel() {
           onCambiarEstado={handleCambiarEstado}
           updating={updatingId === selectedOrder.id}
           onImprimir={handleImprimir}
+          onEliminar={handleEliminar}
         />
       )}
 
@@ -295,13 +318,14 @@ function EstadoSelector({ orden, updating, onChange }: {
 
 // ─── Modal detalle ────────────────────────────────────────────────────────────
 
-function OrderDetailModal({ order, receiptRef, onClose, onCambiarEstado, updating, onImprimir }: {
+function OrderDetailModal({ order, receiptRef, onClose, onCambiarEstado, updating, onImprimir, onEliminar }: {
   order: Order
   receiptRef: React.RefObject<HTMLDivElement | null>
   onClose: () => void
   onCambiarEstado: (id: string, e: OrdenEstado) => void
   updating: boolean
   onImprimir: () => void
+  onEliminar: (id: string) => void
 }) {
   const estados = ESTADOS.filter(e => e.value !== 'todos') as { value: OrdenEstado; label: string; color: string; bg: string }[]
 
@@ -387,13 +411,20 @@ function OrderDetailModal({ order, receiptRef, onClose, onCambiarEstado, updatin
             </div>
           </div>
 
-          {/* Botón imprimir */}
-          <button onClick={onImprimir}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-sm font-semibold text-sm hover:opacity-80 transition-opacity"
-            style={{ border: '2px solid #3D1A05', color: '#3D1A05', backgroundColor: 'transparent' }}>
-            <Printer size={15} />
-            Imprimir comprobante (doble copia)
-          </button>
+          <div className="flex gap-2">
+            <button onClick={onImprimir}
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-sm font-semibold text-sm hover:opacity-80 transition-opacity"
+              style={{ border: '2px solid #3D1A05', color: '#3D1A05', backgroundColor: 'transparent' }}>
+              <Printer size={15} />
+              Imprimir comprobante
+            </button>
+            <button onClick={() => onEliminar(order.id)}
+              className="flex items-center justify-center gap-2 px-4 py-3 rounded-sm font-semibold text-sm hover:opacity-80 transition-opacity"
+              style={{ backgroundColor: '#F5CAAA', color: '#A0622A', border: '2px solid #F5CAAA' }}>
+              <Trash2 size={15} />
+              Eliminar
+            </button>
+          </div>
         </div>
       </div>
 

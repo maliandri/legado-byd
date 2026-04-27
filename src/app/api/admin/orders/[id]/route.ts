@@ -22,3 +22,14 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }
+
+export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params
+    await adminDb().collection('orders').doc(id).delete()
+    return NextResponse.json({ ok: true })
+  } catch (err: any) {
+    console.error('DELETE order error:', err)
+    return NextResponse.json({ error: err.message }, { status: 500 })
+  }
+}
