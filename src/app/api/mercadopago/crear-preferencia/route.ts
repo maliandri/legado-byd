@@ -24,35 +24,31 @@ export async function POST(req: Request) {
     const ordenId = subRef.id
     const externalRef = uid ? `${uid}:${ordenId}` : `anonimo:${ordenId}`
 
-    const orderData = {
+    const itemsMapped = items.map((i: any) => ({
+      productoId: i.productoId,
+      nombre: i.nombre,
+      cantidad: i.cantidad,
+      precio: i.precio,
+    }))
+
+    const baseData = {
       uid: uid || null,
       email_cliente: email || null,
       nombre_cliente: nombre || null,
-      items: items.map((i: any) => ({
-        productoId: i.productoId,
-        nombre: i.nombre,
-        cantidad: i.cantidad,
-        precio: i.precio,
-      })),
-      monto_total: total,
+      items: itemsMapped,
       estado: 'pendiente_pago',
       canal: 'mercadopago',
       createdAt: FieldValue.serverTimestamp(),
     }
 
-    // Escribir en subcol + colección plana con el mismo ID
-    // subcol usa `total` (igual que savePedido), flat usa `monto_total`
+    // subcol pedidos/{uid}/ordenes usa `total` (igual que savePedido)
+    // colección plana `orders` usa `monto_total` (igual que el webhook)
     await Promise.all([
-      subRef.set({ ...orderData, total, monto_total: undefined }),
+      subRef.set({ ...baseData, total }),
       adminDb().collection('orders').doc(ordenId).set({
+        ...baseData,
         cliente_uid: uid || null,
-        email_cliente: email || null,
-        nombre_cliente: nombre || null,
-        canal: 'mercadopago',
-        estado: 'pendiente_pago',
-        items: orderData.items,
         monto_total: total,
-        createdAt: FieldValue.serverTimestamp(),
       }),
     ])
 
