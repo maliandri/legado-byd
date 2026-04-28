@@ -24,6 +24,7 @@ interface Filters {
   marca: string
   subfamilia: string
   iva: string
+  sinFoto: boolean
 }
 
 const FILTERS_DEFAULT: Filters = {
@@ -35,6 +36,7 @@ const FILTERS_DEFAULT: Filters = {
   marca: '',
   subfamilia: '',
   iva: '',
+  sinFoto: false,
 }
 
 function countActiveFilters(f: Filters) {
@@ -47,6 +49,7 @@ function countActiveFilters(f: Filters) {
   if (f.marca) n++
   if (f.subfamilia) n++
   if (f.iva) n++
+  if (f.sinFoto) n++
   return n
 }
 
@@ -110,6 +113,7 @@ export default function ProductTable({ productos, categorias, onRefresh }: Props
     if (filters.marca) list = list.filter(p => p.marca === filters.marca)
     if (filters.subfamilia) list = list.filter(p => p.subfamilia === filters.subfamilia)
     if (filters.iva) list = list.filter(p => String(p.iva ?? '') === filters.iva)
+    if (filters.sinFoto) list = list.filter(p => !p.imagen)
 
     list.sort((a, b) => {
       let va: string | number = ''
@@ -395,6 +399,22 @@ export default function ProductTable({ productos, categorias, onRefresh }: Props
                 <option value="10.5">10,5%</option>
                 <option value="21">21%</option>
               </select>
+            </div>
+
+            {/* Sin foto */}
+            <div className="flex flex-col justify-end pb-1">
+              <label
+                className="flex items-center gap-2 cursor-pointer select-none"
+                style={{ color: '#3D1A05', fontSize: '0.85rem', fontWeight: 500 }}
+              >
+                <input
+                  type="checkbox"
+                  checked={filters.sinFoto}
+                  onChange={e => setFilter('sinFoto', e.target.checked)}
+                  className="w-4 h-4 accent-amber-800 cursor-pointer"
+                />
+                Solo sin foto
+              </label>
             </div>
           </div>
 
