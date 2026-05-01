@@ -69,6 +69,7 @@ export function useAuth() {
   }, [])
 
   const isAdmin = adminEmails.includes(user?.email ?? '')
+  const isVendedor = !!profile && profile.tipo === 'vendedor'
   const isCustomer = !!user && !isAdmin
 
   async function signInWithGoogle(): Promise<{ error?: string }> {
@@ -147,7 +148,7 @@ export function useAuth() {
   }
 
   return {
-    user, profile, loading, isAdmin, isCustomer,
+    user, profile, loading, isAdmin, isVendedor, isCustomer,
     redirectError,
     signInWithGoogle,
     signInCustomer: signInWithGoogle,

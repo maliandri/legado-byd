@@ -22,7 +22,7 @@ export interface Categoria {
   emoji: string
 }
 
-export type TipoUsuario = 'cliente' | 'empresa'
+export type TipoUsuario = 'cliente' | 'empresa' | 'vendedor'
 
 export interface Usuario {
   uid: string
@@ -56,7 +56,7 @@ export type OrdenEstado =
   | 'entregado'
   | 'cancelado'
 
-export type OrdenCanal = 'mercadopago' | 'whatsapp'
+export type OrdenCanal = 'mercadopago' | 'whatsapp' | 'vendedor'
 
 export interface OrdenItem {
   productoId: string
@@ -86,6 +86,9 @@ export interface Order {
   // Logística
   bultos?: number
   notas?: string
+  // Vendedor
+  vendedorId?: string
+  vendedorNombre?: string
 }
 
 export interface ItemPedido {

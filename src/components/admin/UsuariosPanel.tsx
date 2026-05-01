@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import {
   RefreshCw, Trash2, Ban, CheckCircle, Mail, Package,
-  Search, ChevronDown, X, Send, Sparkles, Eye
+  Search, ChevronDown, X, Send, Sparkles, Eye, UserCog
 } from 'lucide-react'
 import type { Usuario } from '@/types'
 
@@ -19,7 +19,7 @@ export default function UsuariosPanel() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([])
   const [loading, setLoading] = useState(true)
   const [busqueda, setBusqueda] = useState('')
-  const [filtroTipo, setFiltroTipo] = useState<'todos' | 'cliente' | 'empresa'>('todos')
+  const [filtroTipo, setFiltroTipo] = useState<'todos' | 'cliente' | 'empresa' | 'vendedor'>('todos')
   const [msg, setMsg] = useState('')
   const [modal, setModal] = useState<ModalType>(null)
   const [selectedUser, setSelectedUser] = useState<SelectedUser | null>(null)
@@ -54,6 +54,24 @@ export default function UsuariosPanel() {
       if (!res.ok) throw new Error()
       showMsg(`Usuario ${!bloqueado ? 'bloqueado' : 'desbloqueado'}`)
       setUsuarios(us => us.map(u => u.uid === uid ? { ...u, bloqueado: !bloqueado } : u))
+    } catch {
+      showMsg('Error al actualizar el usuario', false)
+    }
+  }
+
+  async function handlePromover(uid: string, tipoActual: string | undefined) {
+    const nuevoTipo = tipoActual === 'vendedor' ? 'cliente' : 'vendedor'
+    const accion = nuevoTipo === 'vendedor' ? 'promover a Vendedor' : 'quitar rol de Vendedor'
+    if (!confirm(`¿${accion.charAt(0).toUpperCase() + accion.slice(1)}?`)) return
+    try {
+      const res = await fetch(`/api/admin/usuarios/${uid}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tipo: nuevoTipo }),
+      })
+      if (!res.ok) throw new Error()
+      showMsg(`Usuario actualizado a ${nuevoTipo}`)
+      setUsuarios(us => us.map(u => u.uid === uid ? { ...u, tipo: nuevoTipo as any } : u))
     } catch {
       showMsg('Error al actualizar el usuario', false)
     }
@@ -115,6 +133,7 @@ export default function UsuariosPanel() {
           <option value="todos">Todos los tipos</option>
           <option value="cliente">Clientes</option>
           <option value="empresa">Empresas</option>
+          <option value="vendedor">Vendedores</option>
         </select>
         <button
           onClick={fetchUsuarios}
@@ -189,6 +208,7 @@ export default function UsuariosPanel() {
                         onEliminar={() => handleEliminar(u.uid, u.nombre)}
                         onEmail={() => openModal('email', { uid: u.uid, email: u.email, nombre: u.nombre })}
                         onProducto={() => openModal('producto', { uid: u.uid, email: u.email, nombre: u.nombre })}
+                        onPromover={() => handlePromover(u.uid, u.tipo)}
                       />
                     </td>
                   </tr>
@@ -228,6 +248,12 @@ export default function UsuariosPanel() {
                     color={u.bloqueado ? '#4A5E1A' : '#A0622A'}
                     onClick={() => handleBloquear(u.uid, !!u.bloqueado)}
                   />
+                  <ActionButton
+                    icon={<UserCog size={12} />}
+                    label={u.tipo === 'vendedor' ? 'Quitar vendedor' : 'Hacer vendedor'}
+                    color={u.tipo === 'vendedor' ? '#A0622A' : '#1A3A6A'}
+                    onClick={() => handlePromover(u.uid, u.tipo)}
+                  />
                   <ActionButton icon={<Trash2 size={12} />} label="Eliminar" color="#C0392B"
                     onClick={() => handleEliminar(u.uid, u.nombre)} />
                 </div>
@@ -252,11 +278,11 @@ export default function UsuariosPanel() {
 
 function TipoBadge({ tipo }: { tipo?: string }) {
   if (!tipo) return <span style={{ fontSize: '0.7rem', color: '#A0622A' }}>—</span>
+  const bg = tipo === 'empresa' ? '#3D1A05' : tipo === 'vendedor' ? '#1A3A6A' : '#4A5E1A'
   return (
     <span style={{
       fontSize: '0.68rem', fontWeight: 700, padding: '2px 7px', borderRadius: '99px',
-      backgroundColor: tipo === 'empresa' ? '#3D1A05' : '#4A5E1A',
-      color: '#F2E6C8', textTransform: 'uppercase', letterSpacing: '0.05em',
+      backgroundColor: bg, color: '#F2E6C8', textTransform: 'uppercase', letterSpacing: '0.05em',
     }}>
       {tipo}
     </span>
@@ -275,17 +301,24 @@ function EstadoBadge({ bloqueado }: { bloqueado?: boolean }) {
   )
 }
 
-function AccionesRow({ u, onBloquear, onEliminar, onEmail, onProducto }: {
+function AccionesRow({ u, onBloquear, onEliminar, onEmail, onProducto, onPromover }: {
   u: Usuario
   onBloquear: () => void
   onEliminar: () => void
   onEmail: () => void
   onProducto: () => void
+  onPromover: () => void
 }) {
   return (
     <div className="flex items-center justify-end gap-1">
       <ActionIcon icon={<Mail size={13} />} title="Enviar email" color="#3D1A05" onClick={onEmail} />
       <ActionIcon icon={<Package size={13} />} title="Enviar producto" color="#4A5E1A" onClick={onProducto} />
+      <ActionIcon
+        icon={<UserCog size={13} />}
+        title={u.tipo === 'vendedor' ? 'Quitar rol vendedor' : 'Hacer vendedor'}
+        color={u.tipo === 'vendedor' ? '#A0622A' : '#1A3A6A'}
+        onClick={onPromover}
+      />
       <ActionIcon
         icon={u.bloqueado ? <CheckCircle size={13} /> : <Ban size={13} />}
         title={u.bloqueado ? 'Desbloquear' : 'Bloquear'}

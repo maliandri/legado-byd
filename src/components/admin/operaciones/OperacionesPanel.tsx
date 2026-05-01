@@ -198,8 +198,10 @@ export default function OperacionesPanel() {
                       <div style={{ fontSize: '0.72rem', color: '#6B3A1A' }}>{o.email_cliente || '—'}</div>
                     </td>
                     <td className="px-4 py-3">
-                      <span style={{ fontSize: '0.72rem', color: '#6B3A1A', textTransform: 'capitalize' }}>
-                        {o.canal === 'mercadopago' ? '💳 MercadoPago' : '💬 WhatsApp'}
+                      <span style={{ fontSize: '0.72rem', color: '#6B3A1A' }}>
+                        {o.canal === 'mercadopago' ? '💳 MercadoPago'
+                          : o.canal === 'vendedor' ? `🧑‍💼 ${o.vendedorNombre || 'Vendedor'}`
+                          : '💬 WhatsApp'}
                       </span>
                     </td>
                     <td className="px-4 py-3" style={{ fontWeight: 700, color: '#3D1A05' }}>
@@ -256,7 +258,8 @@ export default function OperacionesPanel() {
                 <div className="flex items-center justify-between">
                   <EstadoBadge estado={o.estado} />
                   <span style={{ fontSize: '0.7rem', color: '#6B3A1A' }}>
-                    {o.canal === 'mercadopago' ? '💳' : '💬'} {o.createdAt ? new Date(o.createdAt).toLocaleDateString('es-AR') : ''}
+                    {o.canal === 'mercadopago' ? '💳' : o.canal === 'vendedor' ? '🧑‍💼' : '💬'}{' '}
+                    {o.createdAt ? new Date(o.createdAt).toLocaleDateString('es-AR') : ''}
                   </span>
                 </div>
               </div>
@@ -344,7 +347,9 @@ function OrderDetailModal({ order, receiptRef, onClose, onCambiarEstado, updatin
               Orden #{order.id.slice(-8).toUpperCase()}
             </h3>
             <p style={{ color: '#DDD0A8', fontSize: '0.72rem' }}>
-              {order.canal === 'mercadopago' ? '💳 MercadoPago' : '💬 WhatsApp'} ·{' '}
+              {order.canal === 'mercadopago' ? '💳 MercadoPago'
+                : order.canal === 'vendedor' ? `🧑‍💼 Vendedor: ${order.vendedorNombre || '—'}`
+                : '💬 WhatsApp'} ·{' '}
               {order.createdAt ? new Date(order.createdAt).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' }) : ''}
             </p>
           </div>

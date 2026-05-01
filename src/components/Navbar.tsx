@@ -16,7 +16,7 @@ export default function Navbar() {
   const [cargandoCats, setCargandoCats] = useState(true)
 
   const { totalItems, setOpen: setCartOpen } = useCart()
-  const { user, profile, isAdmin, isCustomer } = useAuth()
+  const { user, profile, isAdmin, isVendedor, isCustomer } = useAuth()
 
   useEffect(() => {
     getCategorias()
@@ -102,6 +102,14 @@ export default function Navbar() {
               >
                 <UserCircle size={16} />
                 <span className="hidden lg:inline">Admin</span>
+              </a>
+            ) : isVendedor ? (
+              <a href="/vendedor"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-sm text-sm font-semibold hover:opacity-80 transition-opacity"
+                style={{ border: '1.5px solid #1A3A6A', color: '#1A3A6A' }}
+              >
+                <UserCircle size={16} />
+                <span className="hidden lg:inline">Punto de venta</span>
               </a>
             ) : isCustomer ? (
               <a href="/mi-cuenta"

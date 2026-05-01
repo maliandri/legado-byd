@@ -9,7 +9,7 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://legadobyd.com'
 
 export async function POST(req: Request) {
   try {
-    const { uid, email, nombre, items } = await req.json()
+    const { uid, email, nombre, items, vendedorId, vendedorNombre } = await req.json()
 
     if (!items || items.length === 0) {
       return NextResponse.json({ error: 'El carrito está vacío' }, { status: 400 })
@@ -17,7 +17,6 @@ export async function POST(req: Request) {
 
     const total = items.reduce((s: number, i: any) => s + i.precio * i.cantidad, 0)
 
-    // Crear doc ref con ID determinístico para sincronizar subcol + colección plana
     const subRef = adminDb()
       .collection('pedidos').doc(uid || 'anonimo')
       .collection('ordenes').doc()
@@ -31,18 +30,24 @@ export async function POST(req: Request) {
       precio: i.precio,
     }))
 
-    const baseData = {
+    const isVenta = !!vendedorId
+    const canal = isVenta ? 'vendedor' : 'mercadopago'
+
+    const baseData: Record<string, any> = {
       uid: uid || null,
       email_cliente: email || null,
       nombre_cliente: nombre || null,
       items: itemsMapped,
       estado: 'pendiente_pago',
-      canal: 'mercadopago',
+      canal,
       createdAt: FieldValue.serverTimestamp(),
     }
 
-    // subcol pedidos/{uid}/ordenes usa `total` (igual que savePedido)
-    // colección plana `orders` usa `monto_total` (igual que el webhook)
+    if (isVenta) {
+      baseData.vendedorId = vendedorId
+      baseData.vendedorNombre = vendedorNombre || null
+    }
+
     await Promise.all([
       subRef.set({ ...baseData, total }),
       adminDb().collection('orders').doc(ordenId).set({
@@ -52,7 +57,6 @@ export async function POST(req: Request) {
       }),
     ])
 
-    // Crear preferencia en MercadoPago
     const client = new MercadoPagoConfig({
       accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN!,
     })
@@ -78,7 +82,7 @@ export async function POST(req: Request) {
         auto_return: 'approved',
         external_reference: externalRef,
         statement_descriptor: 'Legado ByD',
-        metadata: { uid, ordenId },
+        metadata: { uid, ordenId, vendedorId: vendedorId || null },
       },
     })
 

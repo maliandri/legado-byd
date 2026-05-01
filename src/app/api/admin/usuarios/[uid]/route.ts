@@ -3,13 +3,27 @@ import { adminDb, adminAuth } from '@/lib/firebase/admin'
 
 export const runtime = 'nodejs'
 
-// PATCH — bloquear/desbloquear
 export async function PATCH(req: Request, { params }: { params: Promise<{ uid: string }> }) {
   try {
     const { uid } = await params
-    const { bloqueado } = await req.json()
-    await adminDb().collection('usuarios').doc(uid).update({ bloqueado })
-    await adminAuth().updateUser(uid, { disabled: bloqueado })
+    const body = await req.json()
+
+    const update: Record<string, any> = {}
+
+    if (body.bloqueado !== undefined) {
+      update.bloqueado = body.bloqueado
+      await adminAuth().updateUser(uid, { disabled: body.bloqueado })
+    }
+
+    if (body.tipo !== undefined) {
+      update.tipo = body.tipo
+    }
+
+    if (Object.keys(update).length === 0) {
+      return NextResponse.json({ error: 'Nada que actualizar' }, { status: 400 })
+    }
+
+    await adminDb().collection('usuarios').doc(uid).update(update)
     return NextResponse.json({ ok: true })
   } catch (err: any) {
     console.error('PATCH usuario error:', err)
@@ -17,7 +31,6 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ uid: s
   }
 }
 
-// DELETE — eliminar usuario de Auth + Firestore
 export async function DELETE(_: Request, { params }: { params: Promise<{ uid: string }> }) {
   try {
     const { uid } = await params
