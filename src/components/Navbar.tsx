@@ -182,6 +182,12 @@ export default function Navbar() {
               style={{ color: '#3D1A05' }}>
               <UserCircle size={16} /> Admin
             </a>
+          ) : isVendedor ? (
+            <a href="/vendedor" onClick={() => setOpen(false)}
+              className="flex items-center gap-2 py-2 text-sm font-semibold"
+              style={{ color: '#1A3A6A' }}>
+              <UserCircle size={16} /> Punto de venta
+            </a>
           ) : isCustomer ? (
             <a href="/mi-cuenta" onClick={() => setOpen(false)}
               className="flex items-center gap-2 py-2 text-sm font-semibold"

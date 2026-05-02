@@ -12,7 +12,7 @@ const inp = {
 } as const
 
 export default function LoginPage() {
-  const { user, profile, isAdmin, loading, signInCustomer, redirectError,
+  const { user, profile, isAdmin, isVendedor, loading, signInCustomer, redirectError,
           signInWithEmail, signUpWithEmail, resetPassword } = useAuth()
   const router = useRouter()
 
@@ -29,8 +29,9 @@ export default function LoginPage() {
   useEffect(() => {
     if (loading || !user) return
     if (isAdmin) { router.replace('/admin'); return }
+    if (isVendedor) { router.replace('/vendedor'); return }
     router.replace(profile?.perfilCompleto ? '/mi-cuenta' : '/registro')
-  }, [user, isAdmin, loading, profile, router])
+  }, [user, isAdmin, isVendedor, loading, profile, router])
 
   async function handleGoogle() {
     setError(''); setBusy(true)
