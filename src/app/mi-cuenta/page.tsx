@@ -10,7 +10,7 @@ import { getProducto } from '@/lib/firebase/firestore'
 import type { Pedido, Producto } from '@/types'
 
 export default function MiCuentaPage() {
-  const { user, profile, isCustomer, loading, signOut, refreshProfile } = useAuth()
+  const { user, profile, isCustomer, isVendedor, loading, signOut, refreshProfile } = useAuth()
   const router = useRouter()
 
   const [tab, setTab] = useState<'perfil' | 'favoritos' | 'pedidos'>('perfil')
@@ -112,12 +112,22 @@ export default function MiCuentaPage() {
             <p style={{ color: '#C4A040', fontSize: '0.75rem' }}>{profile.email}</p>
           </div>
         </div>
-        <button
-          onClick={() => { signOut(); router.replace('/') }}
-          style={{ fontSize: '0.82rem', color: '#DDD0A8', background: 'none', border: '1px solid #6B3A1A', borderRadius: 6, padding: '6px 14px', cursor: 'pointer' }}
-        >
-          Cerrar sesión
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {isVendedor && (
+            <a
+              href="/vendedor"
+              style={{ fontSize: '0.82rem', color: '#1A3A6A', background: '#D4E4F4', border: '1px solid #7A9ACA', borderRadius: 6, padding: '6px 14px', cursor: 'pointer', fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap' }}
+            >
+              🧑‍💼 Punto de venta
+            </a>
+          )}
+          <button
+            onClick={() => { signOut(); router.replace('/') }}
+            style={{ fontSize: '0.82rem', color: '#DDD0A8', background: 'none', border: '1px solid #6B3A1A', borderRadius: 6, padding: '6px 14px', cursor: 'pointer' }}
+          >
+            Cerrar sesión
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -137,8 +147,8 @@ export default function MiCuentaPage() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: '1.2rem', color: '#3D1A05' }}>Tus datos</h2>
               {profile?.tipo && (
-                <span style={{ fontSize: '0.78rem', backgroundColor: '#F2E6C8', border: '1px solid #DDD0A8', borderRadius: 99, padding: '3px 12px', color: '#6B3A1A', fontWeight: 600 }}>
-                  {profile.tipo === 'empresa' ? '🏢 Empresa' : '👤 Cliente'}
+                <span style={{ fontSize: '0.78rem', backgroundColor: profile.tipo === 'vendedor' ? '#D4E4F4' : '#F2E6C8', border: `1px solid ${profile.tipo === 'vendedor' ? '#7A9ACA' : '#DDD0A8'}`, borderRadius: 99, padding: '3px 12px', color: profile.tipo === 'vendedor' ? '#1A3A6A' : '#6B3A1A', fontWeight: 600 }}>
+                  {profile.tipo === 'empresa' ? '🏢 Empresa' : profile.tipo === 'vendedor' ? '🧑‍💼 Vendedor' : '👤 Cliente'}
                 </span>
               )}
             </div>
