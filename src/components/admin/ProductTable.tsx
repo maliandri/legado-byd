@@ -548,7 +548,7 @@ export default function ProductTable({ productos, categorias, onRefresh }: Props
 
                   {/* IVA */}
                   <td style={{ ...tdStyle, fontSize: '0.82rem', color: '#6B3A1A', whiteSpace: 'nowrap' }}>
-                    {p.iva ? `${p.iva}%` : <span style={{ color: '#C4A040' }}>—</span>}
+                    {p.iva ? `${String(p.iva).replace('.', ',')}%` : <span style={{ color: '#C4A040' }}>—</span>}
                   </td>
 
                   {/* Acciones */}

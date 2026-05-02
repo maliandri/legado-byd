@@ -14,7 +14,7 @@ import {
   updateCategoria,
   deleteCategoria,
 } from '@/lib/firebase/firestore'
-import { LogOut, ShoppingBag, LayoutGrid, RefreshCw, Plus, Pencil, Trash2, FileSpreadsheet, Mail, Users, ClipboardList, ImagePlus, Film, TrendingUp, X } from 'lucide-react'
+import { LogOut, ShoppingBag, LayoutGrid, RefreshCw, Plus, Pencil, Trash2, FileSpreadsheet, Mail, Users, ClipboardList, ImagePlus, Film, TrendingUp, X, Percent } from 'lucide-react'
 import OperacionesPanel from '@/components/admin/operaciones/OperacionesPanel'
 import PublicacionLibre from '@/components/admin/PublicacionLibre'
 import ReelCreator from '@/components/admin/ReelCreator'
@@ -45,6 +45,7 @@ function AdminPanel() {
   const [showPreciosModal, setShowPreciosModal] = useState(false)
   const [porcentaje, setPorcentaje] = useState('')
   const [subiendoPrecios, setSubiendoPrecios] = useState(false)
+  const [limpiandoIva, setLimpiandoIva] = useState(false)
 
   async function handleGenerarDescripciones() {
     if (!confirm('¿Generar descripciones con IA para todos los productos sin descripción?')) return
@@ -60,6 +61,24 @@ function AdminPanel() {
       setSyncMsg(`✗ ${err.message}`)
     } finally {
       setGeneratingDesc(false)
+      setTimeout(() => setSyncMsg(''), 6000)
+    }
+  }
+
+  async function handleLimpiarIva() {
+    if (!confirm('¿Normalizar el IVA de todos los productos? Convierte valores inválidos (ej: 105 → 10.5) y elimina los que no sean 10.5 o 21.')) return
+    setLimpiandoIva(true)
+    setSyncMsg('')
+    try {
+      const res = await fetch('/api/admin/limpiar-iva', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Error desconocido')
+      setSyncMsg(data.normalizados === 0 ? '✓ IVA ya estaba limpio — sin cambios' : `✓ ${data.normalizados} productos con IVA corregido`)
+      refresh()
+    } catch (err: any) {
+      setSyncMsg(`✗ ${err.message}`)
+    } finally {
+      setLimpiandoIva(false)
       setTimeout(() => setSyncMsg(''), 6000)
     }
   }
@@ -298,6 +317,15 @@ function AdminPanel() {
                 >
                   {subiendoPrecios ? <RefreshCw size={13} className="animate-spin" /> : <TrendingUp size={13} />}
                   {subiendoPrecios ? 'Actualizando...' : 'Subir precios'}
+                </button>
+                <button
+                  onClick={handleLimpiarIva}
+                  disabled={limpiandoIva}
+                  className="flex items-center justify-center gap-2 px-3 py-2 rounded-sm text-xs sm:text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-50"
+                  style={{ backgroundColor: '#5E3A6A', color: '#F2E6C8' }}
+                >
+                  {limpiandoIva ? <RefreshCw size={13} className="animate-spin" /> : <Percent size={13} />}
+                  {limpiandoIva ? 'Limpiando...' : 'Limpiar IVA'}
                 </button>
               </div>
 
