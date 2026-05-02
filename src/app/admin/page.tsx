@@ -14,7 +14,7 @@ import {
   updateCategoria,
   deleteCategoria,
 } from '@/lib/firebase/firestore'
-import { LogOut, ShoppingBag, LayoutGrid, RefreshCw, Plus, Pencil, Trash2, FileSpreadsheet, Mail, Users, ClipboardList, ImagePlus, Film } from 'lucide-react'
+import { LogOut, ShoppingBag, LayoutGrid, RefreshCw, Plus, Pencil, Trash2, FileSpreadsheet, Mail, Users, ClipboardList, ImagePlus, Film, TrendingUp, X } from 'lucide-react'
 import OperacionesPanel from '@/components/admin/operaciones/OperacionesPanel'
 import PublicacionLibre from '@/components/admin/PublicacionLibre'
 import ReelCreator from '@/components/admin/ReelCreator'
@@ -42,6 +42,9 @@ function AdminPanel() {
   const [importingSheets, setImportingSheets] = useState(false)
   const [generatingDesc, setGeneratingDesc] = useState(false)
   const [syncMsg, setSyncMsg] = useState('')
+  const [showPreciosModal, setShowPreciosModal] = useState(false)
+  const [porcentaje, setPorcentaje] = useState('')
+  const [subiendoPrecios, setSubiendoPrecios] = useState(false)
 
   async function handleGenerarDescripciones() {
     if (!confirm('¿Generar descripciones con IA para todos los productos sin descripción?')) return
@@ -57,6 +60,37 @@ function AdminPanel() {
       setSyncMsg(`✗ ${err.message}`)
     } finally {
       setGeneratingDesc(false)
+      setTimeout(() => setSyncMsg(''), 6000)
+    }
+  }
+
+  async function handleSubirPrecios() {
+    const pct = parseFloat(porcentaje)
+    if (isNaN(pct) || pct <= 0 || pct > 1000) {
+      setSyncMsg('✗ Ingresá un porcentaje válido (1–1000).')
+      setShowPreciosModal(false)
+      setTimeout(() => setSyncMsg(''), 4000)
+      return
+    }
+    if (!confirm(`¿Subir todos los precios un ${pct}%? Esta acción no se puede deshacer.`)) return
+    setSubiendoPrecios(true)
+    setShowPreciosModal(false)
+    setSyncMsg('')
+    try {
+      const res = await fetch('/api/admin/subir-precios', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ porcentaje: pct }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Error desconocido')
+      setSyncMsg(`✓ ${data.actualizados} productos actualizados (+${pct}%)`)
+      setPorcentaje('')
+      refresh()
+    } catch (err: any) {
+      setSyncMsg(`✗ ${err.message}`)
+    } finally {
+      setSubiendoPrecios(false)
       setTimeout(() => setSyncMsg(''), 6000)
     }
   }
@@ -256,7 +290,55 @@ function AdminPanel() {
                   {syncingSheets ? <RefreshCw size={13} className="animate-spin" /> : <FileSpreadsheet size={13} />}
                   {syncingSheets ? 'Guardando...' : 'Backup Sheet'}
                 </button>
+                <button
+                  onClick={() => setShowPreciosModal(v => !v)}
+                  disabled={subiendoPrecios}
+                  className="flex items-center justify-center gap-2 px-3 py-2 rounded-sm text-xs sm:text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-50"
+                  style={{ backgroundColor: '#1A3A6A', color: '#F2E6C8' }}
+                >
+                  {subiendoPrecios ? <RefreshCw size={13} className="animate-spin" /> : <TrendingUp size={13} />}
+                  {subiendoPrecios ? 'Actualizando...' : 'Subir precios'}
+                </button>
               </div>
+
+              {showPreciosModal && (
+                <div className="mb-3 flex items-center gap-2 p-3 rounded-sm"
+                  style={{ backgroundColor: '#EDD9A3', border: '1px solid #C4A040' }}>
+                  <TrendingUp size={15} style={{ color: '#1A3A6A', flexShrink: 0 }} />
+                  <span style={{ fontSize: '0.85rem', color: '#3D1A05', whiteSpace: 'nowrap' }}>
+                    Subir todos los precios
+                  </span>
+                  <input
+                    type="number"
+                    min="0.1"
+                    max="1000"
+                    step="0.1"
+                    value={porcentaje}
+                    onChange={e => setPorcentaje(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleSubirPrecios()}
+                    placeholder="% (ej: 15)"
+                    autoFocus
+                    style={{
+                      width: 90, padding: '6px 10px', borderRadius: 4,
+                      border: '1.5px solid #C4A040', backgroundColor: '#FFFBF2',
+                      color: '#3D1A05', fontSize: '0.9rem', outline: 'none',
+                    }}
+                  />
+                  <span style={{ color: '#3D1A05', fontSize: '0.85rem' }}>%</span>
+                  <button
+                    onClick={handleSubirPrecios}
+                    disabled={!porcentaje}
+                    className="px-3 py-1.5 rounded-sm text-sm font-semibold disabled:opacity-40"
+                    style={{ backgroundColor: '#1A3A6A', color: '#fff' }}
+                  >
+                    Aplicar
+                  </button>
+                  <button onClick={() => { setShowPreciosModal(false); setPorcentaje('') }}
+                    style={{ color: '#6B3A1A', marginLeft: 'auto' }}>
+                    <X size={16} />
+                  </button>
+                </div>
+              )}
               <BulkImageUpload productos={productos} onDone={refresh} />
               <ProductTable
                 productos={productos}
