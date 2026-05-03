@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
-import { Search, Plus, Minus, Trash2, QrCode, RefreshCw, CheckCircle, X, ShoppingCart } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Search, Plus, Minus, Trash2, QrCode, RefreshCw, CheckCircle, X, ShoppingCart, LayoutGrid, List } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import { getProductos } from '@/lib/firebase/firestore'
 import { useAuth } from '@/hooks/useAuth'
@@ -29,6 +29,7 @@ export default function VendedorPanel() {
   const [ordenId, setOrdenId] = useState('')
   const [generando, setGenerando] = useState(false)
   const [msg, setMsg] = useState('')
+  const [viewMode, setViewMode] = useState<'lista' | 'galeria'>('lista')
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
@@ -221,14 +222,29 @@ export default function VendedorPanel() {
           Elegir productos
         </h3>
 
-        <div className="relative mb-3">
-          <Search size={15} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#A0622A', pointerEvents: 'none' }} />
-          <input
-            style={{ ...inputStyle, paddingLeft: 32 }}
-            value={busqueda}
-            onChange={e => setBusqueda(e.target.value)}
-            placeholder="Buscar producto..."
-          />
+        {/* Búsqueda + toggle vista */}
+        <div className="flex gap-2 mb-3">
+          <div className="relative flex-1">
+            <Search size={15} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#A0622A', pointerEvents: 'none' }} />
+            <input
+              style={{ ...inputStyle, paddingLeft: 32 }}
+              value={busqueda}
+              onChange={e => setBusqueda(e.target.value)}
+              placeholder="Buscar producto..."
+            />
+          </div>
+          <button
+            onClick={() => setViewMode(v => v === 'lista' ? 'galeria' : 'lista')}
+            className="flex-shrink-0 flex items-center justify-center px-3 rounded-sm transition-all"
+            style={{
+              border: `1px solid ${viewMode === 'galeria' ? '#C4A040' : '#DDD0A8'}`,
+              backgroundColor: viewMode === 'galeria' ? '#F2E6C8' : 'transparent',
+              color: '#3D1A05',
+            }}
+            title={viewMode === 'galeria' ? 'Vista lista' : 'Vista galería'}
+          >
+            {viewMode === 'galeria' ? <List size={16} /> : <LayoutGrid size={16} />}
+          </button>
         </div>
 
         <div className="rounded-sm overflow-hidden" style={{ border: '1px solid #DDD0A8', maxHeight: 420, overflowY: 'auto' }}>
@@ -239,6 +255,43 @@ export default function VendedorPanel() {
             </div>
           ) : filtered.length === 0 ? (
             <div className="py-6 text-center text-sm" style={{ color: '#A0622A' }}>Sin resultados</div>
+          ) : viewMode === 'galeria' ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-0.5 p-1" style={{ backgroundColor: '#EDD9A3' }}>
+              {filtered.map(p => (
+                <button
+                  key={p.id}
+                  disabled={p.stock === 0}
+                  onClick={() => p.stock > 0 && addToCart(p)}
+                  className="relative overflow-hidden disabled:opacity-50"
+                  style={{ aspectRatio: '1 / 1', backgroundColor: '#F2E6C8' }}
+                >
+                  {p.imagen ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={p.imagen} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center text-3xl">📦</div>
+                  )}
+                  <div
+                    className="absolute inset-x-0 bottom-0 flex flex-col justify-end px-1.5 pb-1.5 pt-6"
+                    style={{ background: 'linear-gradient(to top, rgba(20,8,0,0.85) 0%, transparent 100%)' }}
+                  >
+                    <p className="text-white font-semibold leading-tight line-clamp-2 text-left"
+                      style={{ fontSize: '0.68rem' }}>
+                      {p.nombre}
+                    </p>
+                    <p className="font-bold text-left" style={{ fontSize: '0.72rem', color: '#F2CC6B' }}>
+                      ${p.precio.toLocaleString('es-AR')}
+                    </p>
+                  </div>
+                  {p.stock === 0 && (
+                    <div className="absolute top-1 right-1 px-1 py-0.5 rounded text-white"
+                      style={{ backgroundColor: 'rgba(160,98,42,0.85)', fontSize: '0.55rem', fontWeight: 700 }}>
+                      SIN STOCK
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
           ) : (
             filtered.map(p => (
               <div
