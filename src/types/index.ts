@@ -71,6 +71,11 @@ export interface Order {
   cliente_uid?: string
   email_cliente?: string
   nombre_cliente?: string
+  telefono_cliente?: string
+  // Entrega
+  direccion_entrega?: string
+  altura_entrega?: string
+  provincia_entrega?: string
   // Pago
   id_transaccion?: string
   metodo_pago?: string

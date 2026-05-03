@@ -7,7 +7,7 @@ export const runtime = 'nodejs'
 
 export async function POST(req: Request) {
   try {
-    const { email, nombre, items, total, uid } = await req.json()
+    const { email, nombre, items, total, uid, telefono, direccion, altura, provincia } = await req.json()
     if (!email || !nombre || !items || !total) {
       return NextResponse.json({ error: 'Faltan datos del pedido' }, { status: 400 })
     }
@@ -17,6 +17,10 @@ export async function POST(req: Request) {
       cliente_uid: uid || null,
       email_cliente: email,
       nombre_cliente: nombre,
+      ...(telefono  ? { telefono_cliente: telefono }   : {}),
+      ...(direccion ? { direccion_entrega: direccion }  : {}),
+      ...(altura    ? { altura_entrega: altura }         : {}),
+      ...(provincia ? { provincia_entrega: provincia }   : {}),
       canal: 'whatsapp',
       estado: 'en_preparacion',
       items: items.map((i: any) => ({

@@ -9,7 +9,7 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://legadobyd.com'
 
 export async function POST(req: Request) {
   try {
-    const { uid, email, nombre, items, vendedorId, vendedorNombre } = await req.json()
+    const { uid, email, nombre, telefono, direccion, altura, provincia, items, vendedorId, vendedorNombre } = await req.json()
 
     if (!items || items.length === 0) {
       return NextResponse.json({ error: 'El carrito está vacío' }, { status: 400 })
@@ -37,6 +37,10 @@ export async function POST(req: Request) {
       uid: uid || null,
       email_cliente: email || null,
       nombre_cliente: nombre || null,
+      ...(telefono  ? { telefono_cliente: telefono }   : {}),
+      ...(direccion ? { direccion_entrega: direccion }  : {}),
+      ...(altura    ? { altura_entrega: altura }         : {}),
+      ...(provincia ? { provincia_entrega: provincia }   : {}),
       items: itemsMapped,
       estado: 'pendiente_pago',
       canal,

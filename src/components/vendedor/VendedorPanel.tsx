@@ -24,6 +24,10 @@ export default function VendedorPanel() {
   const [busqueda, setBusqueda] = useState('')
   const [cart, setCart] = useState<CartItem[]>([])
   const [clienteNombre, setClienteNombre] = useState('')
+  const [clienteTelefono, setClienteTelefono] = useState('')
+  const [clienteDireccion, setClienteDireccion] = useState('')
+  const [clienteAltura, setClienteAltura] = useState('')
+  const [clienteProvincia, setClienteProvincia] = useState('')
   const [state, setState] = useState<PanelState>('carrito')
   const [initPoint, setInitPoint] = useState('')
   const [ordenId, setOrdenId] = useState('')
@@ -100,6 +104,10 @@ export default function VendedorPanel() {
           uid: 'anonimo',
           email: null,
           nombre: clienteNombre || null,
+          telefono: clienteTelefono || null,
+          direccion: clienteDireccion || null,
+          altura: clienteAltura || null,
+          provincia: clienteProvincia || null,
           items: cart,
           vendedorId: user?.uid,
           vendedorNombre: profile?.nombre || user?.email,
@@ -122,6 +130,10 @@ export default function VendedorPanel() {
     if (pollRef.current) clearInterval(pollRef.current)
     setCart([])
     setClienteNombre('')
+    setClienteTelefono('')
+    setClienteDireccion('')
+    setClienteAltura('')
+    setClienteProvincia('')
     setInitPoint('')
     setOrdenId('')
     setState('carrito')
@@ -369,14 +381,25 @@ export default function VendedorPanel() {
           Carrito {cart.length > 0 && <span style={{ color: '#C4A040' }}>({cart.length})</span>}
         </h3>
 
-        {/* Nombre del cliente */}
-        <div className="mb-3">
-          <input
-            style={inputStyle}
-            value={clienteNombre}
+        {/* Datos del cliente y entrega */}
+        <div className="mb-3 flex flex-col gap-2">
+          <input style={inputStyle} value={clienteNombre}
             onChange={e => setClienteNombre(e.target.value)}
-            placeholder="Nombre del cliente (opcional)"
-          />
+            placeholder="Nombre del cliente (opcional)" />
+          <input style={inputStyle} value={clienteTelefono}
+            onChange={e => setClienteTelefono(e.target.value)}
+            placeholder="Teléfono" inputMode="tel" />
+          <div className="flex gap-2">
+            <input style={{ ...inputStyle, flex: 2 }} value={clienteDireccion}
+              onChange={e => setClienteDireccion(e.target.value)}
+              placeholder="Dirección (calle)" />
+            <input style={{ ...inputStyle, flex: 1 }} value={clienteAltura}
+              onChange={e => setClienteAltura(e.target.value)}
+              placeholder="Altura" />
+          </div>
+          <input style={inputStyle} value={clienteProvincia}
+            onChange={e => setClienteProvincia(e.target.value)}
+            placeholder="Localidad / Provincia" />
         </div>
 
         {/* Items */}

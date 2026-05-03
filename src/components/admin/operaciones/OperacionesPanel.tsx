@@ -379,6 +379,10 @@ function OrderDetailModal({ order, receiptRef, onClose, onCambiarEstado, updatin
                 <span style={{ fontWeight: 600, color: '#3D1A05' }}>{order.nombre_cliente || '—'}</span></div>
               <div><span style={{ color: '#A0622A', fontSize: '0.72rem' }}>Email</span><br />
                 <span style={{ color: '#3D1A05' }}>{order.email_cliente || '—'}</span></div>
+              {order.telefono_cliente && (
+                <div><span style={{ color: '#A0622A', fontSize: '0.72rem' }}>Teléfono</span><br />
+                  <span style={{ color: '#3D1A05' }}>{order.telefono_cliente}</span></div>
+              )}
               {order.id_transaccion && (
                 <div><span style={{ color: '#A0622A', fontSize: '0.72rem' }}>ID Transacción</span><br />
                   <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: '#3D1A05' }}>{order.id_transaccion}</span></div>
@@ -388,6 +392,26 @@ function OrderDetailModal({ order, receiptRef, onClose, onCambiarEstado, updatin
                   <span style={{ color: '#3D1A05', textTransform: 'capitalize' }}>{order.metodo_pago}</span></div>
               )}
             </div>
+            {(order.direccion_entrega || order.provincia_entrega) && (
+              <div className="mt-3 pt-3" style={{ borderTop: '1px solid #EDD9A3' }}>
+                <h4 className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: '#6B3A1A' }}>
+                  📦 Entrega
+                </h4>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  {order.direccion_entrega && (
+                    <div><span style={{ color: '#A0622A', fontSize: '0.72rem' }}>Dirección</span><br />
+                      <span style={{ color: '#3D1A05', fontWeight: 600 }}>
+                        {order.direccion_entrega}{order.altura_entrega ? ` ${order.altura_entrega}` : ''}
+                      </span>
+                    </div>
+                  )}
+                  {order.provincia_entrega && (
+                    <div><span style={{ color: '#A0622A', fontSize: '0.72rem' }}>Localidad</span><br />
+                      <span style={{ color: '#3D1A05' }}>{order.provincia_entrega}</span></div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Items */}

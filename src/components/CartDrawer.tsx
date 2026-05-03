@@ -12,6 +12,9 @@ async function enviarEmailsPedido(params: {
   email: string
   nombre: string
   uid?: string
+  telefono?: string
+  direccion?: string
+  provincia?: string
   items: { productoId: string; nombre: string; cantidad: number; precio: number }[]
   total: number
 }) {
@@ -62,6 +65,9 @@ export default function CartDrawer() {
           email: user.email,
           nombre: profile?.nombre || user.displayName || 'Cliente',
           uid: user.uid,
+          telefono: profile?.telefono,
+          direccion: profile?.direccion,
+          provincia: profile?.ciudad ? `${profile.ciudad}${profile.provincia ? `, ${profile.provincia}` : ''}` : profile?.provincia,
           items: items.map(i => ({
             productoId: i.producto.id,
             nombre: i.producto.nombre,
