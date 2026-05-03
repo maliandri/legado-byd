@@ -3,8 +3,11 @@
 import { useState, useMemo } from 'react'
 import ProductCard from './ProductCard'
 import { useProducts } from '@/hooks/useProducts'
-import type { Categoria } from '@/types'
-import { Search, SlidersHorizontal, X, ChevronDown } from 'lucide-react'
+import { useAuth } from '@/hooks/useAuth'
+import type { Categoria, Producto } from '@/types'
+import { Search, SlidersHorizontal, X, ChevronDown, LayoutGrid, Image as ImageIcon } from 'lucide-react'
+import Image from 'next/image'
+import Link from 'next/link'
 
 interface Props {
   categorias: Categoria[]
@@ -39,11 +42,15 @@ function countActive(f: Filters) {
   return n
 }
 
+type ViewMode = 'lista' | 'galeria'
+
 export default function ProductGrid({ categorias }: Props) {
   const { productos: todos, loading, error } = useProducts()
+  const { isVendedor } = useAuth()
   const [filters, setFilters] = useState<Filters>(FILTERS_DEFAULT)
   const [sort, setSort] = useState<SortOption>('relevancia')
   const [showExtra, setShowExtra] = useState(false)
+  const [view, setView] = useState<ViewMode>('lista')
 
   function setFilter<K extends keyof Filters>(key: K, val: Filters[K]) {
     setFilters(prev => ({ ...prev, [key]: val }))
@@ -212,6 +219,27 @@ export default function ProductGrid({ categorias }: Props) {
             </span>
           )}
         </button>
+
+        {/* Toggle galería — solo para vendedor */}
+        {isVendedor && (
+          <button
+            onClick={() => setView(v => v === 'lista' ? 'galeria' : 'lista')}
+            className="flex items-center justify-center gap-2 px-4 py-2 rounded"
+            style={{
+              border: `1px solid ${view === 'galeria' ? '#1A3A6A' : '#DDD0A8'}`,
+              backgroundColor: view === 'galeria' ? '#D4E4F4' : 'transparent',
+              color: view === 'galeria' ? '#1A3A6A' : '#3D1A05',
+              fontSize: '0.9rem',
+              fontWeight: 500,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+            title={view === 'galeria' ? 'Vista lista' : 'Vista galería'}
+          >
+            {view === 'galeria' ? <LayoutGrid size={15} /> : <ImageIcon size={15} />}
+            {view === 'galeria' ? 'Lista' : 'Galería'}
+          </button>
+        )}
       </div>
 
       {/* ── Pills de categoría ── */}
@@ -379,23 +407,16 @@ export default function ProductGrid({ categorias }: Props) {
       {/* ── Grid ── */}
       {result.length === 0 ? (
         <div className="py-16 text-center">
-          <p
-            style={{
-              color: '#6B3A1A',
-              fontFamily: "'Playfair Display', serif",
-              fontSize: '1.1rem',
-              marginBottom: 8,
-            }}
-          >
+          <p style={{ color: '#6B3A1A', fontFamily: "'Playfair Display', serif", fontSize: '1.1rem', marginBottom: 8 }}>
             No encontramos productos con esos filtros.
           </p>
-          <button
-            onClick={clearAll}
-            className="text-sm underline hover:opacity-70"
-            style={{ color: '#A0622A' }}
-          >
+          <button onClick={clearAll} className="text-sm underline hover:opacity-70" style={{ color: '#A0622A' }}>
             Ver todos los productos
           </button>
+        </div>
+      ) : view === 'galeria' ? (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+          {result.map(p => <GaleriaCard key={p.id} producto={p} />)}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
@@ -405,5 +426,56 @@ export default function ProductGrid({ categorias }: Props) {
         </div>
       )}
     </div>
+  )
+}
+
+function GaleriaCard({ producto }: { producto: Producto }) {
+  return (
+    <Link
+      href={`/producto/${producto.id}`}
+      className="relative block overflow-hidden rounded-sm group"
+      style={{ aspectRatio: '1 / 1', backgroundColor: '#F2E6C8' }}
+    >
+      {producto.imagen ? (
+        <Image
+          src={producto.imagen}
+          alt={producto.nombre}
+          fill
+          className="object-cover group-hover:scale-105 transition-transform duration-400"
+          sizes="(max-width: 640px) 50vw, 25vw"
+        />
+      ) : (
+        <div className="absolute inset-0 flex items-center justify-center text-4xl">
+          {producto.categoria === 'panaderia' ? '🍞' : producto.categoria === 'pasteleria' ? '🎂' : '✨'}
+        </div>
+      )}
+
+      {/* Gradiente + texto */}
+      <div
+        className="absolute inset-x-0 bottom-0 flex flex-col justify-end px-2 pb-2 pt-8"
+        style={{ background: 'linear-gradient(to top, rgba(20,8,0,0.82) 0%, transparent 100%)' }}
+      >
+        <p
+          className="text-white font-semibold leading-tight line-clamp-2"
+          style={{ fontSize: 'clamp(0.7rem, 2.5vw, 0.85rem)' }}
+        >
+          {producto.nombre}
+        </p>
+        <p
+          className="text-white font-bold mt-0.5"
+          style={{ fontSize: 'clamp(0.72rem, 2.5vw, 0.88rem)', color: '#F2CC6B' }}
+        >
+          ${producto.precio.toLocaleString('es-AR')}
+        </p>
+      </div>
+
+      {/* Badge sin stock */}
+      {producto.stock === 0 && (
+        <div className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded-sm text-xs font-semibold"
+          style={{ backgroundColor: 'rgba(232,196,154,0.92)', color: '#6B3A1A', fontSize: '0.65rem' }}>
+          Sin stock
+        </div>
+      )}
+    </Link>
   )
 }
