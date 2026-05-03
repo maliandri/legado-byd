@@ -220,26 +220,24 @@ export default function ProductGrid({ categorias }: Props) {
           )}
         </button>
 
-        {/* Toggle galería — solo para vendedor */}
-        {isVendedor && (
-          <button
-            onClick={() => setView(v => v === 'lista' ? 'galeria' : 'lista')}
-            className="flex items-center justify-center gap-2 px-4 py-2 rounded"
-            style={{
-              border: `1px solid ${view === 'galeria' ? '#1A3A6A' : '#DDD0A8'}`,
-              backgroundColor: view === 'galeria' ? '#D4E4F4' : 'transparent',
-              color: view === 'galeria' ? '#1A3A6A' : '#3D1A05',
-              fontSize: '0.9rem',
-              fontWeight: 500,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-            }}
-            title={view === 'galeria' ? 'Vista lista' : 'Vista galería'}
-          >
-            {view === 'galeria' ? <LayoutGrid size={15} /> : <ImageIcon size={15} />}
-            {view === 'galeria' ? 'Lista' : 'Galería'}
-          </button>
-        )}
+        {/* Toggle galería — todos los usuarios */}
+        <button
+          onClick={() => setView(v => v === 'lista' ? 'galeria' : 'lista')}
+          className="flex items-center justify-center gap-2 px-4 py-2 rounded"
+          style={{
+            border: `1px solid ${view === 'galeria' ? '#C4A040' : '#DDD0A8'}`,
+            backgroundColor: view === 'galeria' ? '#F2E6C8' : 'transparent',
+            color: '#3D1A05',
+            fontSize: '0.9rem',
+            fontWeight: 500,
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+          }}
+          title={view === 'galeria' ? 'Vista lista' : 'Vista galería'}
+        >
+          {view === 'galeria' ? <LayoutGrid size={15} /> : <ImageIcon size={15} />}
+          {view === 'galeria' ? 'Lista' : 'Galería'}
+        </button>
       </div>
 
       {/* ── Pills de categoría ── */}

@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { Search, Plus, Minus, Trash2, QrCode, RefreshCw, CheckCircle, X, ShoppingCart, LayoutGrid, List } from 'lucide-react'
+import { useState, useEffect, useRef, useMemo } from 'react'
+import { Search, Plus, Minus, Trash2, QrCode, RefreshCw, CheckCircle, X, ShoppingCart, LayoutGrid, List, ChevronDown } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import { getProductos } from '@/lib/firebase/firestore'
 import { useAuth } from '@/hooks/useAuth'
@@ -29,7 +29,9 @@ export default function VendedorPanel() {
   const [ordenId, setOrdenId] = useState('')
   const [generando, setGenerando] = useState(false)
   const [msg, setMsg] = useState('')
-  const [viewMode, setViewMode] = useState<'lista' | 'galeria'>('lista')
+  const [viewMode, setViewMode] = useState<'lista' | 'galeria'>('galeria')
+  const [sortBy, setSortBy] = useState<'nombre' | 'precio-asc' | 'precio-desc' | 'stock-desc'>('nombre')
+  const [soloConStock, setSoloConStock] = useState(false)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
@@ -41,9 +43,17 @@ export default function VendedorPanel() {
 
   useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current) }, [])
 
-  const filtered = busqueda
-    ? productos.filter(p => p.nombre.toLowerCase().includes(busqueda.toLowerCase()))
-    : productos.slice(0, 40)
+  const filtered = useMemo(() => {
+    let list = busqueda
+      ? productos.filter(p => p.nombre.toLowerCase().includes(busqueda.toLowerCase()))
+      : [...productos]
+    if (soloConStock) list = list.filter(p => p.stock > 0)
+    if (sortBy === 'precio-asc') list.sort((a, b) => a.precio - b.precio)
+    else if (sortBy === 'precio-desc') list.sort((a, b) => b.precio - a.precio)
+    else if (sortBy === 'stock-desc') list.sort((a, b) => b.stock - a.stock)
+    else list.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
+    return busqueda ? list : list.slice(0, 80)
+  }, [productos, busqueda, sortBy, soloConStock])
 
   const total = cart.reduce((s, i) => s + i.precio * i.cantidad, 0)
 
@@ -223,7 +233,7 @@ export default function VendedorPanel() {
         </h3>
 
         {/* Búsqueda + toggle vista */}
-        <div className="flex gap-2 mb-3">
+        <div className="flex gap-2 mb-2">
           <div className="relative flex-1">
             <Search size={15} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#A0622A', pointerEvents: 'none' }} />
             <input
@@ -245,6 +255,32 @@ export default function VendedorPanel() {
           >
             {viewMode === 'galeria' ? <List size={16} /> : <LayoutGrid size={16} />}
           </button>
+        </div>
+
+        {/* Filtros: orden + solo con stock */}
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
+          <div className="relative flex-1" style={{ minWidth: 140 }}>
+            <select
+              value={sortBy}
+              onChange={e => setSortBy(e.target.value as typeof sortBy)}
+              style={{ ...inputStyle, width: '100%', paddingRight: 28, appearance: 'none', cursor: 'pointer', fontSize: '0.8rem', padding: '6px 28px 6px 10px' }}
+            >
+              <option value="nombre">A → Z</option>
+              <option value="precio-asc">Precio: menor a mayor</option>
+              <option value="precio-desc">Precio: mayor a menor</option>
+              <option value="stock-desc">Mayor stock primero</option>
+            </select>
+            <ChevronDown size={13} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', color: '#A0622A', pointerEvents: 'none' }} />
+          </div>
+          <label className="flex items-center gap-1.5 cursor-pointer select-none whitespace-nowrap" style={{ fontSize: '0.8rem', color: '#3D1A05', fontWeight: 500 }}>
+            <input
+              type="checkbox"
+              checked={soloConStock}
+              onChange={e => setSoloConStock(e.target.checked)}
+              className="w-3.5 h-3.5 accent-amber-800"
+            />
+            Con stock
+          </label>
         </div>
 
         <div className="rounded-sm overflow-hidden" style={{ border: '1px solid #DDD0A8', maxHeight: 420, overflowY: 'auto' }}>
