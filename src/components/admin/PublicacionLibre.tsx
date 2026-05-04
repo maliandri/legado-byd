@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { Upload, X, Sparkles, Copy, MessageCircle, RefreshCw, Search, Package, Loader2 } from 'lucide-react'
+import { Upload, X, Sparkles, Copy, MessageCircle, RefreshCw, Search, Package, Loader2, Instagram, CheckCircle2, AlertCircle } from 'lucide-react'
 
 interface ImageItem {
   file?: File
@@ -23,6 +23,7 @@ export default function PublicacionLibre() {
   const [tema, setTema] = useState('')
   const [generando, setGenerando] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [igStatus, setIgStatus] = useState<'idle' | 'uploading' | 'sending' | 'ok' | 'error'>('idle')
   const [msg, setMsg] = useState('')
 
   // Buscador de productos
@@ -139,6 +140,43 @@ export default function PublicacionLibre() {
       flash(`Error: ${err.message}`, true)
     } finally {
       setGenerando(false)
+    }
+  }
+
+  async function handlePublicarIG() {
+    if (!caption) { flash('Escribí o generá un caption primero', true); return }
+    setIgStatus('uploading')
+    try {
+      // Subir primera imagen si no está en la nube todavía
+      let imageUrl: string | null = null
+      const first = images[0]
+      if (first) {
+        if (first.cloudUrl) {
+          imageUrl = first.cloudUrl
+        } else if (first.file) {
+          const fd = new FormData()
+          fd.append('file', first.file)
+          const upRes = await fetch('/api/upload', { method: 'POST', body: fd })
+          const upData = await upRes.json()
+          if (!upRes.ok) throw new Error(upData.error || 'Error al subir imagen')
+          imageUrl = upData.secure_url || upData.url
+          setImages(prev => prev.map((im, j) => j === 0 ? { ...im, cloudUrl: imageUrl! } : im))
+        }
+      }
+      setIgStatus('sending')
+      const res = await fetch('/api/instagram/publicar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ caption, imageUrl, type: 'post' }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Error')
+      setIgStatus('ok')
+      setTimeout(() => setIgStatus('idle'), 4000)
+    } catch (err: any) {
+      flash(`Error: ${err.message}`, true)
+      setIgStatus('error')
+      setTimeout(() => setIgStatus('idle'), 4000)
     }
   }
 
@@ -378,6 +416,26 @@ export default function PublicacionLibre() {
         >
           {uploading ? <RefreshCw size={13} className="animate-spin" /> : <MessageCircle size={13} />}
           {uploading ? 'Preparando...' : 'Compartir por WhatsApp'}
+        </button>
+        <button
+          onClick={handlePublicarIG}
+          disabled={!caption || igStatus === 'uploading' || igStatus === 'sending'}
+          className="flex items-center gap-1.5 px-4 py-2 rounded-sm text-sm font-semibold disabled:opacity-40 hover:opacity-80 transition-opacity"
+          style={{
+            backgroundColor: igStatus === 'ok' ? '#4A5E1A' : igStatus === 'error' ? '#c62828' : '#E1306C',
+            color: 'white',
+          }}
+        >
+          {igStatus === 'uploading' || igStatus === 'sending'
+            ? <RefreshCw size={13} className="animate-spin" />
+            : igStatus === 'ok' ? <CheckCircle2 size={13} />
+            : igStatus === 'error' ? <AlertCircle size={13} />
+            : <Instagram size={13} />}
+          {igStatus === 'uploading' ? 'Subiendo imagen...'
+            : igStatus === 'sending' ? 'Enviando...'
+            : igStatus === 'ok' ? '¡Enviado!'
+            : igStatus === 'error' ? 'Error'
+            : 'Publicar en Instagram'}
         </button>
       </div>
     </div>
