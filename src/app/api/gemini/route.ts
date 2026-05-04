@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
     const { nombre, categoria } = await req.json()
     if (!nombre) return NextResponse.json({ error: 'Nombre requerido' }, { status: 400 })
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' })
 
     const prompt = `Sos un copywriter para "Legado Bazar y Deco", una tienda de insumos de panadería, pastelería y decoración en Neuquén, Argentina.
 

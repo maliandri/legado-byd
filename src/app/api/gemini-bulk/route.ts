@@ -21,7 +21,7 @@ async function generarDescripcion(
   nombre: string,
   categoria: string
 ): Promise<string> {
-  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' })
   const prompt = `Sos un copywriter para "Legado Bazar y Deco", una tienda de insumos de panadería, pastelería y decoración en Neuquén, Argentina.
 
 Escribí una descripción comercial muy breve para el producto "${nombre}" de la categoría "${categoria}".
