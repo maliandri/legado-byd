@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
   try {
     const { productos, tema } = await req.json()
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' })
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite-preview-06-17' })
 
     const listaProductos = (productos as { nombre: string; precio?: number }[])
       .map(p => `${p.nombre}${p.precio ? ` - $${p.precio.toLocaleString('es-AR')}` : ''}`)
