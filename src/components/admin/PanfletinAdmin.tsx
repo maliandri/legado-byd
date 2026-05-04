@@ -32,10 +32,10 @@ interface PanfletConfig {
 
 const APP_URL = 'https://legadobyd.com'
 
-const FORMATO_DIMS: Record<Formato, { w: number; h: number; label: string }> = {
-  'a4':          { w: 794, h: 1123, label: 'A4 (210×297 mm)' },
-  'carta':       { w: 816, h: 1056, label: 'Carta (215×279 mm)' },
-  'dos-por-uno': { w: 1123, h: 794, label: '2×1 Horizontal (A4 apaisado)' },
+const FORMATO_DIMS: Record<Formato, { w: number; h: number; label: string; pdfFmt: string; landscape: boolean }> = {
+  'a4':          { w: 794,  h: 1123, label: 'A4 (210×297 mm)',        pdfFmt: 'a4',     landscape: false },
+  'carta':       { w: 816,  h: 1056, label: 'Carta (215×279 mm)',      pdfFmt: 'letter', landscape: false },
+  'dos-por-uno': { w: 1587, h: 794,  label: '2×1 Horizontal (doble A4)', pdfFmt: 'a4',  landscape: true  },
 }
 
 // ── Componente principal ──────────────────────────────────────────────────────
@@ -60,7 +60,9 @@ export default function PanfletinAdmin() {
   const [buscando, setBuscando] = useState(false)
   const [exportando, setExportando] = useState(false)
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const previewRef = useRef<HTMLDivElement>(null)
+
+  // Ref apunta al div oculto a tamaño completo (para export correcto)
+  const exportRef = useRef<HTMLDivElement | null>(null)
 
   const set = useCallback((patch: Partial<PanfletConfig>) => setConfig(c => ({ ...c, ...patch })), [])
 
@@ -90,31 +92,42 @@ export default function PanfletinAdmin() {
   }
 
   async function handleExport() {
-    if (!previewRef.current) return
+    if (!exportRef.current) return
     setExportando(true)
     try {
+      // Esperar que las imágenes dentro del div oculto carguen
+      const imgs = exportRef.current.querySelectorAll('img')
+      await Promise.all(Array.from(imgs).map(img =>
+        img.complete ? Promise.resolve() : new Promise(r => { img.onload = r; img.onerror = r })
+      ))
+
+      // Esperar fuentes del sistema (ya están cargadas, pero por las dudas)
+      await document.fonts.ready
+
       const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
         import('html2canvas'),
         import('jspdf'),
       ])
 
       const dims = FORMATO_DIMS[config.formato]
-      const isLandscape = config.formato === 'dos-por-uno'
 
-      const canvas = await html2canvas(previewRef.current, {
+      const canvas = await html2canvas(exportRef.current, {
         scale: 2,
         useCORS: true,
         allowTaint: true,
-        backgroundColor: '#F9EDD3',
+        logging: false,
         width: dims.w,
         height: dims.h,
+        windowWidth: dims.w,
+        windowHeight: dims.h,
       })
 
       const imgData = canvas.toDataURL('image/jpeg', 0.95)
+
       const pdf = new jsPDF({
-        orientation: isLandscape ? 'landscape' : 'portrait',
+        orientation: dims.landscape ? 'landscape' : 'portrait',
         unit: 'mm',
-        format: config.formato === 'carta' ? 'letter' : 'a4',
+        format: dims.pdfFmt,
       })
 
       const pdfW = pdf.internal.pageSize.getWidth()
@@ -129,7 +142,9 @@ export default function PanfletinAdmin() {
   }
 
   const dims = FORMATO_DIMS[config.formato]
-  const scale = config.formato === 'dos-por-uno' ? 0.42 : 0.48
+  // Escala para mostrar en pantalla (máx 560px de ancho)
+  const maxW = 560
+  const scale = Math.min(maxW / dims.w, 0.55)
 
   const inputStyle = {
     width: '100%', padding: '7px 10px', borderRadius: 3,
@@ -139,8 +154,13 @@ export default function PanfletinAdmin() {
 
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 0' }}>
+      {/* Div oculto a tamaño real — usado para exportar */}
+      <div style={{ position: 'fixed', left: -9999, top: 0, zIndex: -1, pointerEvents: 'none' }}>
+        <PanfletoContent config={config} ref={exportRef} />
+      </div>
+
       <div className="mb-5">
-        <h2 style={{ fontFamily: "'Playfair Display', serif", color: '#3D1A05', fontSize: '1.5rem', fontWeight: 700 }}>
+        <h2 style={{ fontFamily: "'Georgia, serif'", color: '#3D1A05', fontSize: '1.5rem', fontWeight: 700 }}>
           Panfletín con QR
         </h2>
         <p style={{ color: '#A0622A', fontSize: '0.85rem', marginTop: 4 }}>
@@ -151,9 +171,8 @@ export default function PanfletinAdmin() {
       <div className="flex gap-6 items-start" style={{ flexWrap: 'wrap' }}>
 
         {/* ── Panel de controles ── */}
-        <div style={{ flex: '0 0 300px', minWidth: 260 }}>
+        <div style={{ flex: '0 0 290px', minWidth: 260 }}>
 
-          {/* Formato */}
           <Section titulo="Formato">
             <div className="flex flex-col gap-1.5">
               {(Object.entries(FORMATO_DIMS) as [Formato, typeof FORMATO_DIMS[Formato]][]).map(([k, v]) => (
@@ -166,12 +185,11 @@ export default function PanfletinAdmin() {
             </div>
           </Section>
 
-          {/* Plantilla */}
           <Section titulo="Plantilla">
             <div className="flex gap-2 flex-wrap">
               {(['clasica', 'moderna', 'minimalista'] as Plantilla[]).map(p => (
                 <button key={p} onClick={() => set({ plantilla: p })}
-                  className="px-3 py-1 rounded-sm text-xs font-semibold capitalize transition-all"
+                  className="px-3 py-1 rounded-sm text-xs font-semibold transition-all"
                   style={{
                     backgroundColor: config.plantilla === p ? '#3D1A05' : '#FDF8EE',
                     color: config.plantilla === p ? '#C4A040' : '#6B3A1A',
@@ -183,7 +201,6 @@ export default function PanfletinAdmin() {
             </div>
           </Section>
 
-          {/* Textos */}
           <Section titulo="Textos">
             <div className="flex flex-col gap-2">
               <div>
@@ -206,18 +223,17 @@ export default function PanfletinAdmin() {
             </div>
           </Section>
 
-          {/* Secciones visibles */}
           <Section titulo="Mostrar">
             <div className="flex flex-col gap-1.5">
-              {[
+              {([
                 ['mostrarQR', 'Código QR'],
                 ['mostrarProductos', 'Productos'],
                 ['mostrarContacto', 'WhatsApp'],
                 ['mostrarInstagram', 'Instagram'],
                 ['mostrarWeb', 'Sitio web'],
-              ].map(([key, label]) => (
+              ] as [keyof PanfletConfig, string][]).map(([key, label]) => (
                 <label key={key} className="flex items-center gap-2 cursor-pointer" style={{ fontSize: '0.85rem', color: '#3D1A05' }}>
-                  <input type="checkbox" checked={config[key as keyof PanfletConfig] as boolean}
+                  <input type="checkbox" checked={config[key] as boolean}
                     onChange={e => set({ [key]: e.target.checked } as any)}
                     className="w-3.5 h-3.5 accent-amber-800" />
                   {label}
@@ -226,7 +242,6 @@ export default function PanfletinAdmin() {
             </div>
           </Section>
 
-          {/* Productos */}
           {config.mostrarProductos && (
             <Section titulo={`Productos (${config.productos.length}/6)`}>
               <div className="relative mb-2">
@@ -247,7 +262,7 @@ export default function PanfletinAdmin() {
                         className="w-full flex items-center gap-2 px-2 py-1.5 text-left hover:bg-amber-50 transition-colors">
                         {p.imagen
                           // eslint-disable-next-line @next/next/no-img-element
-                          ? <img src={p.imagen} alt="" className="w-8 h-8 object-cover rounded-sm flex-shrink-0" />
+                          ? <img src={p.imagen} alt="" className="w-8 h-8 object-cover rounded-sm flex-shrink-0" crossOrigin="anonymous" />
                           : <Package size={20} style={{ color: '#DDD0A8' }} />}
                         <div className="min-w-0">
                           <p style={{ fontSize: '0.8rem', color: '#3D1A05', fontWeight: 500 }} className="truncate">{p.nombre}</p>
@@ -278,7 +293,6 @@ export default function PanfletinAdmin() {
             </Section>
           )}
 
-          {/* Exportar */}
           <button onClick={handleExport} disabled={exportando}
             className="w-full flex items-center justify-center gap-2 py-3 rounded-sm font-semibold text-sm disabled:opacity-50 hover:opacity-80 transition-opacity mt-2"
             style={{ backgroundColor: '#3D1A05', color: '#C4A040' }}>
@@ -287,21 +301,29 @@ export default function PanfletinAdmin() {
           </button>
         </div>
 
-        {/* ── Preview ── */}
-        <div style={{ flex: 1, minWidth: 300 }}>
+        {/* ── Preview escalado ── */}
+        <div style={{ flex: 1, minWidth: 280 }}>
           <p style={{ fontSize: '0.75rem', color: '#A0622A', marginBottom: 8, textAlign: 'center' }}>
-            Vista previa — {FORMATO_DIMS[config.formato].label}
+            Vista previa — {dims.label}
           </p>
-          <div style={{ overflowX: 'auto', display: 'flex', justifyContent: 'center' }}>
+          <div style={{ overflowX: 'auto' }}>
             <div style={{
               width: dims.w * scale,
               height: dims.h * scale,
-              transform: `scale(1)`,
-              transformOrigin: 'top left',
+              position: 'relative',
               flexShrink: 0,
+              boxShadow: '0 4px 24px rgba(61,26,5,0.18)',
             }}>
-              <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left', width: dims.w, height: dims.h }}>
-                <PanfletoPreview config={config} previewRef={previewRef} />
+              <div style={{
+                transform: `scale(${scale})`,
+                transformOrigin: 'top left',
+                width: dims.w,
+                height: dims.h,
+                position: 'absolute',
+                top: 0,
+                left: 0,
+              }}>
+                <PanfletoContent config={config} />
               </div>
             </div>
           </div>
@@ -324,260 +346,243 @@ function Section({ titulo, children }: { titulo: string; children: React.ReactNo
   )
 }
 
-// ── Preview del panfleto ──────────────────────────────────────────────────────
+// ── Contenido del panfleto (preview + export comparten el mismo componente) ───
 
-function PanfletoPreview({ config, previewRef }: { config: PanfletConfig; previewRef: React.RefObject<HTMLDivElement | null> }) {
-  const { plantilla } = config
-  const isMinimalista = plantilla === 'minimalista'
-  const isModerna = plantilla === 'moderna'
+import { forwardRef } from 'react'
 
-  const bgPrimario = isMinimalista ? '#FFFFFF' : isModerna ? '#3D1A05' : '#F9EDD3'
-  const bgSecundario = isMinimalista ? '#F9EDD3' : isModerna ? '#5C2A0A' : '#F2E6C8'
-  const textoPrimario = isMinimalista ? '#3D1A05' : isModerna ? '#F2E6C8' : '#3D1A05'
-  const textoSecundario = isMinimalista ? '#6B3A1A' : isModerna ? '#C4A040' : '#6B3A1A'
-  const acento = '#C4A040'
-  const isDosX1 = config.formato === 'dos-por-uno'
+const PanfletoContent = forwardRef<HTMLDivElement, { config: PanfletConfig }>(
+  function PanfletoContent({ config }, ref) {
+    const { plantilla, formato } = config
+    const dims = FORMATO_DIMS[formato]
+    const isDosX1 = formato === 'dos-por-uno'
 
-  return (
-    <div
-      ref={previewRef as React.RefObject<HTMLDivElement>}
-      style={{
-        width: FORMATO_DIMS[config.formato].w,
-        height: FORMATO_DIMS[config.formato].h,
-        backgroundColor: bgPrimario,
-        fontFamily: "'Inter', sans-serif",
-        display: 'flex',
-        flexDirection: isDosX1 ? 'row' : 'column',
-        overflow: 'hidden',
-        position: 'relative',
-      }}
-    >
-      {/* ── Mitad izquierda (o columna principal) ── */}
-      <div style={{
-        flex: isDosX1 ? '0 0 50%' : 1,
-        display: 'flex',
-        flexDirection: 'column',
-        padding: isDosX1 ? 40 : 48,
-        borderRight: isDosX1 ? `3px solid ${acento}` : 'none',
-      }}>
-        {/* Header */}
+    // Paletas por plantilla — solo colores sólidos, fuentes del sistema
+    const pal = plantilla === 'moderna'
+      ? { bg: '#3D1A05', header: '#2A0E00', card: '#5C2A0A', texto: '#F2E6C8', sub: '#C4A040', acento: '#C4A040', footerBg: '#2A0E00' }
+      : plantilla === 'minimalista'
+      ? { bg: '#FFFFFF', header: '#3D1A05', card: '#F2E6C8', texto: '#3D1A05', sub: '#6B3A1A', acento: '#C4A040', footerBg: '#3D1A05' }
+      : { bg: '#F9EDD3', header: '#3D1A05', card: '#F2E6C8', texto: '#3D1A05', sub: '#6B3A1A', acento: '#C4A040', footerBg: '#3D1A05' }
+
+    const serif = 'Georgia, "Times New Roman", serif'
+    const sans = 'Arial, Helvetica, sans-serif'
+
+    const pad = isDosX1 ? 36 : 48
+
+    return (
+      <div
+        ref={ref}
+        style={{
+          width: dims.w,
+          height: dims.h,
+          backgroundColor: pal.bg,
+          fontFamily: sans,
+          display: 'flex',
+          flexDirection: isDosX1 ? 'row' : 'column',
+          overflow: 'hidden',
+        }}
+      >
+        {/* ── Columna principal ── */}
         <div style={{
-          backgroundColor: isModerna ? '#2A0E00' : isMinimalista ? '#3D1A05' : '#3D1A05',
-          margin: isDosX1 ? -40 : -48,
-          marginBottom: isDosX1 ? 32 : 40,
-          padding: isDosX1 ? '28px 40px' : '36px 48px',
-          borderBottom: `4px solid ${acento}`,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
-            <div style={{
-              width: isDosX1 ? 36 : 44,
-              height: isDosX1 ? 36 : 44,
-              borderRadius: '50%',
-              backgroundColor: acento,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 900,
-              fontSize: isDosX1 ? 18 : 22,
-              color: '#3D1A05',
-              flexShrink: 0,
-            }}>L</div>
-            <div>
-              <h1 style={{
-                fontFamily: "'Playfair Display', serif",
-                color: '#F2E6C8',
-                fontSize: isDosX1 ? 22 : 28,
-                fontWeight: 700,
-                margin: 0,
-                lineHeight: 1.2,
-              }}>{config.titulo}</h1>
-            </div>
-          </div>
-          {config.subtitulo && (
-            <p style={{ color: acento, fontSize: isDosX1 ? 11 : 13, margin: 0, marginTop: 6, lineHeight: 1.4 }}>
-              {config.subtitulo}
-            </p>
-          )}
-        </div>
-
-        {/* Texto promocional */}
-        {config.textoPromo && (
-          <div style={{
-            backgroundColor: bgSecundario,
-            border: `2px solid ${acento}`,
-            borderRadius: 4,
-            padding: isDosX1 ? '14px 18px' : '18px 22px',
-            marginBottom: isDosX1 ? 20 : 28,
-          }}>
-            <p style={{ color: textoPrimario, fontSize: isDosX1 ? 13 : 15, lineHeight: 1.6, margin: 0, fontWeight: 500 }}>
-              {config.textoPromo}
-            </p>
-          </div>
-        )}
-
-        {/* Productos (en formato normal van en la misma columna, en 2x1 solo aquí) */}
-        {config.mostrarProductos && config.productos.length > 0 && (
-          <div style={{ flex: 1 }}>
-            <h3 style={{
-              fontFamily: "'Playfair Display', serif",
-              color: textoSecundario,
-              fontSize: isDosX1 ? 14 : 16,
-              fontWeight: 700,
-              marginBottom: isDosX1 ? 10 : 14,
-              borderBottom: `1px solid ${acento}`,
-              paddingBottom: 6,
-            }}>
-              Nuestros productos
-            </h3>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: isDosX1 ? 'repeat(2, 1fr)' : config.productos.length <= 2 ? '1fr' : 'repeat(2, 1fr)',
-              gap: isDosX1 ? 8 : 10,
-            }}>
-              {config.productos.slice(0, isDosX1 ? 6 : 6).map(p => (
-                <div key={p.id} style={{
-                  backgroundColor: bgSecundario,
-                  borderRadius: 4,
-                  overflow: 'hidden',
-                  border: `1px solid ${acento}40`,
-                  display: 'flex',
-                  flexDirection: 'column',
-                }}>
-                  {p.imagen && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={p.imagen} alt={p.nombre}
-                      style={{ width: '100%', height: isDosX1 ? 60 : 80, objectFit: 'cover' }} />
-                  )}
-                  <div style={{ padding: isDosX1 ? '6px 8px' : '8px 10px' }}>
-                    <p style={{ color: textoPrimario, fontSize: isDosX1 ? 10 : 12, fontWeight: 600, margin: 0, lineHeight: 1.3 }}>
-                      {p.nombre}
-                    </p>
-                    <p style={{ color: acento, fontSize: isDosX1 ? 11 : 13, fontWeight: 700, margin: 0, marginTop: 2 }}>
-                      ${p.precio.toLocaleString('es-AR')}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Contacto — solo en formato normal (no 2x1, va en columna derecha) */}
-        {!isDosX1 && (
-          <ContactoFooter config={config} textoPrimario={textoPrimario} textoSecundario={textoSecundario} acento={acento} bgSecundario={bgSecundario} small={false} />
-        )}
-      </div>
-
-      {/* ── Mitad derecha (solo en 2x1) ── */}
-      {isDosX1 && (
-        <div style={{
-          flex: '0 0 50%',
+          flex: isDosX1 ? '0 0 50%' : 1,
           display: 'flex',
           flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: 40,
-          gap: 24,
+          borderRight: isDosX1 ? `3px solid ${pal.acento}` : 'none',
+          overflow: 'hidden',
         }}>
-          {config.mostrarQR && (
-            <div style={{ textAlign: 'center' }}>
-              <div style={{
-                backgroundColor: 'white',
-                padding: 16,
-                borderRadius: 8,
-                border: `3px solid ${acento}`,
-                display: 'inline-block',
-                marginBottom: 10,
-              }}>
-                <QRCodeSVG value={APP_URL} size={150} level="M" />
-              </div>
-              <p style={{ color: textoSecundario, fontSize: 11, margin: 0 }}>Escaneá para ver el catálogo</p>
-              <p style={{ color: acento, fontSize: 12, fontWeight: 700, margin: 0, marginTop: 2 }}>{APP_URL}</p>
-            </div>
-          )}
-          <ContactoFooter config={config} textoPrimario={textoPrimario} textoSecundario={textoSecundario} acento={acento} bgSecundario={bgSecundario} small={true} />
-        </div>
-      )}
-
-      {/* ── QR en formato normal (pie de página) ── */}
-      {!isDosX1 && config.mostrarQR && (
-        <div style={{
-          backgroundColor: '#3D1A05',
-          padding: '20px 48px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 20,
-        }}>
-          <div>
-            <p style={{ color: acento, fontSize: 13, fontWeight: 700, margin: 0, marginBottom: 4 }}>
-              ¡Visitá nuestro catálogo online!
-            </p>
-            <p style={{ color: '#F2E6C8', fontSize: 12, margin: 0 }}>{APP_URL}</p>
-          </div>
+          {/* Header */}
           <div style={{
-            backgroundColor: 'white',
-            padding: 10,
-            borderRadius: 6,
-            border: `2px solid ${acento}`,
+            backgroundColor: pal.header,
+            padding: isDosX1 ? '24px 36px' : '32px 48px',
+            borderBottom: `4px solid ${pal.acento}`,
             flexShrink: 0,
           }}>
-            <QRCodeSVG value={APP_URL} size={80} level="M" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 6 }}>
+              <div style={{
+                width: isDosX1 ? 38 : 48,
+                height: isDosX1 ? 38 : 48,
+                borderRadius: '50%',
+                backgroundColor: pal.acento,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontFamily: serif,
+                fontWeight: 900,
+                fontSize: isDosX1 ? 20 : 26,
+                color: '#3D1A05',
+                flexShrink: 0,
+              }}>L</div>
+              <h1 style={{
+                fontFamily: serif,
+                color: '#F2E6C8',
+                fontSize: isDosX1 ? 24 : 32,
+                fontWeight: 700,
+                margin: 0,
+                lineHeight: 1.15,
+              }}>{config.titulo}</h1>
+            </div>
+            {config.subtitulo && (
+              <p style={{ color: pal.acento, fontSize: isDosX1 ? 12 : 14, margin: 0, lineHeight: 1.4, fontFamily: sans }}>
+                {config.subtitulo}
+              </p>
+            )}
           </div>
+
+          {/* Cuerpo */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: pad, gap: 20, overflow: 'hidden' }}>
+
+            {/* Promo */}
+            {config.textoPromo && (
+              <div style={{
+                backgroundColor: pal.card,
+                border: `2px solid ${pal.acento}`,
+                borderRadius: 6,
+                padding: isDosX1 ? '14px 18px' : '18px 22px',
+                flexShrink: 0,
+              }}>
+                <p style={{ color: pal.texto, fontSize: isDosX1 ? 13 : 16, lineHeight: 1.65, margin: 0, fontWeight: 500 }}>
+                  {config.textoPromo}
+                </p>
+              </div>
+            )}
+
+            {/* Productos */}
+            {config.mostrarProductos && config.productos.length > 0 && (
+              <div style={{ flex: 1, overflow: 'hidden' }}>
+                <h3 style={{
+                  fontFamily: serif,
+                  color: pal.sub,
+                  fontSize: isDosX1 ? 14 : 18,
+                  fontWeight: 700,
+                  margin: 0,
+                  marginBottom: 12,
+                  paddingBottom: 8,
+                  borderBottom: `2px solid ${pal.acento}`,
+                }}>
+                  Nuestros productos
+                </h3>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: `repeat(${config.productos.length === 1 ? 1 : 2}, 1fr)`,
+                  gap: 10,
+                }}>
+                  {config.productos.slice(0, 6).map(p => (
+                    <div key={p.id} style={{
+                      backgroundColor: pal.card,
+                      borderRadius: 5,
+                      overflow: 'hidden',
+                      border: `1px solid ${pal.acento}55`,
+                    }}>
+                      {p.imagen && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={p.imagen}
+                          alt={p.nombre}
+                          crossOrigin="anonymous"
+                          style={{ width: '100%', height: isDosX1 ? 64 : 90, objectFit: 'cover', display: 'block' }}
+                        />
+                      )}
+                      <div style={{ padding: isDosX1 ? '6px 10px' : '8px 12px' }}>
+                        <p style={{ color: pal.texto, fontSize: isDosX1 ? 11 : 13, fontWeight: 600, margin: 0, lineHeight: 1.3 }}>
+                          {p.nombre}
+                        </p>
+                        <p style={{ color: pal.acento, fontSize: isDosX1 ? 12 : 15, fontWeight: 700, margin: 0, marginTop: 3 }}>
+                          ${p.precio.toLocaleString('es-AR')}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Contacto (en formato normal) */}
+            {!isDosX1 && <ContactoBloque config={config} pal={pal} sans={sans} />}
+          </div>
+
+          {/* Footer QR (en formato normal) */}
+          {!isDosX1 && config.mostrarQR && (
+            <div style={{
+              backgroundColor: pal.footerBg,
+              padding: '20px 48px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 20,
+              flexShrink: 0,
+            }}>
+              <div>
+                <p style={{ color: pal.acento, fontSize: 14, fontWeight: 700, margin: 0, marginBottom: 4, fontFamily: sans }}>
+                  ¡Visitá nuestro catálogo online!
+                </p>
+                <p style={{ color: '#F2E6C8', fontSize: 13, margin: 0, fontFamily: sans }}>{APP_URL}</p>
+              </div>
+              <div style={{ backgroundColor: 'white', padding: 10, borderRadius: 6, border: `2px solid ${pal.acento}`, flexShrink: 0 }}>
+                <QRCodeSVG value={APP_URL} size={88} level="M" />
+              </div>
+            </div>
+          )}
         </div>
-      )}
-    </div>
-  )
-}
 
-// ── Bloque de contacto reutilizable ───────────────────────────────────────────
+        {/* ── Columna derecha (solo 2×1) ── */}
+        {isDosX1 && (
+          <div style={{
+            flex: '0 0 50%',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 28,
+            padding: 48,
+          }}>
+            {config.mostrarQR && (
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ backgroundColor: 'white', padding: 16, borderRadius: 8, border: `3px solid ${pal.acento}`, display: 'inline-block', marginBottom: 10 }}>
+                  <QRCodeSVG value={APP_URL} size={160} level="M" />
+                </div>
+                <p style={{ color: pal.sub, fontSize: 12, margin: 0, fontFamily: sans }}>Escaneá para ver el catálogo</p>
+                <p style={{ color: pal.acento, fontSize: 13, fontWeight: 700, margin: 0, marginTop: 2, fontFamily: sans }}>{APP_URL}</p>
+              </div>
+            )}
+            <ContactoBloque config={config} pal={pal} sans={sans} />
+          </div>
+        )}
+      </div>
+    )
+  }
+)
 
-function ContactoFooter({ config, textoPrimario, textoSecundario, acento, bgSecundario, small }: {
+// ── Bloque de contacto ────────────────────────────────────────────────────────
+
+function ContactoBloque({ config, pal, sans }: {
   config: PanfletConfig
-  textoPrimario: string
-  textoSecundario: string
-  acento: string
-  bgSecundario: string
-  small: boolean
+  pal: { card: string; texto: string; acento: string; sub: string }
+  sans: string
 }) {
-  const fs = small ? 11 : 13
-  const iconSize = small ? 14 : 16
-
-  const items: { show: boolean; icon: string; texto: string }[] = [
-    { show: config.mostrarContacto, icon: '📱', texto: 'WhatsApp: +54 9 299 123-4567' },
-    { show: config.mostrarInstagram, icon: '📸', texto: '@legadobazarydeco' },
-    { show: config.mostrarWeb, icon: '🌐', texto: 'legadobyd.com' },
-  ].filter(i => i.show)
+  const items = [
+    config.mostrarContacto  && { icon: '📱', text: 'WhatsApp: +54 9 299 123-4567' },
+    config.mostrarInstagram && { icon: '📸', text: '@legadobazarydeco' },
+    config.mostrarWeb       && { icon: '🌐', text: 'legadobyd.com' },
+  ].filter(Boolean) as { icon: string; text: string }[]
 
   if (items.length === 0) return null
 
   return (
-    <div style={{
-      marginTop: small ? 0 : 20,
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 6,
-      width: '100%',
-    }}>
-      {!small && (
-        <h4 style={{ color: textoSecundario, fontSize: 12, fontWeight: 700, margin: 0, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          Encontranos en
-        </h4>
-      )}
-      {items.map((item, i) => (
-        <div key={i} style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          backgroundColor: bgSecundario,
-          borderRadius: 4,
-          padding: small ? '6px 10px' : '8px 12px',
-          border: `1px solid ${acento}40`,
-        }}>
-          <span style={{ fontSize: iconSize }}>{item.icon}</span>
-          <span style={{ color: textoPrimario, fontSize: fs, fontWeight: 500 }}>{item.texto}</span>
-        </div>
-      ))}
+    <div style={{ flexShrink: 0, width: '100%' }}>
+      <h4 style={{ color: pal.sub, fontSize: 12, fontWeight: 700, margin: 0, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: sans }}>
+        Encontranos en
+      </h4>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {items.map((item, i) => (
+          <div key={i} style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            backgroundColor: pal.card, borderRadius: 4, padding: '8px 12px',
+            border: `1px solid ${pal.acento}44`,
+          }}>
+            <span style={{ fontSize: 16 }}>{item.icon}</span>
+            <span style={{ color: pal.texto, fontSize: 13, fontWeight: 500, fontFamily: sans }}>{item.text}</span>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
