@@ -14,17 +14,18 @@ import {
   updateCategoria,
   deleteCategoria,
 } from '@/lib/firebase/firestore'
-import { LogOut, ShoppingBag, LayoutGrid, RefreshCw, Plus, Pencil, Trash2, FileSpreadsheet, Mail, Users, ClipboardList, ImagePlus, Film, TrendingUp, X, Percent, BookOpen, Rss, FileText } from 'lucide-react'
+import { LogOut, ShoppingBag, LayoutGrid, RefreshCw, Plus, Pencil, Trash2, FileSpreadsheet, Mail, Users, ClipboardList, ImagePlus, Film, TrendingUp, X, Percent, BookOpen, Rss, FileText, BookMarked } from 'lucide-react'
 import OperacionesPanel from '@/components/admin/operaciones/OperacionesPanel'
 import PublicacionLibre from '@/components/admin/PublicacionLibre'
 import ReelCreator from '@/components/admin/ReelCreator'
 import NosotrosAdmin from '@/components/admin/NosotrosAdmin'
 import SocialAdmin from '@/components/admin/SocialAdmin'
 import PanfletinAdmin from '@/components/admin/PanfletinAdmin'
+import DocumentacionAdmin from '@/components/admin/DocumentacionAdmin'
 import type { Categoria } from '@/types'
 import { useEffect } from 'react'
 
-type Tab = 'productos' | 'categorias' | 'emails' | 'usuarios' | 'operaciones' | 'publicar' | 'reel' | 'nosotros' | 'social' | 'panfleto'
+type Tab = 'productos' | 'categorias' | 'emails' | 'usuarios' | 'operaciones' | 'publicar' | 'reel' | 'nosotros' | 'social' | 'panfleto' | 'docs'
 
 export default function AdminPage() {
   return (
@@ -264,6 +265,10 @@ function AdminPanel() {
               <FileText size={15} className="inline mr-1.5" />
               Panfletín
             </button>
+            <button style={tabStyle(tab === 'docs')} onClick={() => setTab('docs')}>
+              <BookMarked size={15} className="inline mr-1.5" />
+              Docs
+            </button>
           </div>
         </div>
       </div>
@@ -408,6 +413,7 @@ function AdminPanel() {
         {tab === 'nosotros' && <NosotrosAdmin />}
         {tab === 'social' && <SocialAdmin />}
         {tab === 'panfleto' && <PanfletinAdmin />}
+        {tab === 'docs' && <DocumentacionAdmin />}
       </main>
     </div>
   )
