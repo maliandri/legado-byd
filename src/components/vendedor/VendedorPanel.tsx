@@ -12,6 +12,7 @@ interface CartItem {
   nombre: string
   precio: number
   cantidad: number
+  stock: number
   imagen?: string
 }
 
@@ -32,6 +33,7 @@ export default function VendedorPanel() {
   const [initPoint, setInitPoint] = useState('')
   const [ordenId, setOrdenId] = useState('')
   const [generando, setGenerando] = useState(false)
+  const [cobrandoEfectivo, setCobrandoEfectivo] = useState(false)
   const [msg, setMsg] = useState('')
   const [viewMode, setViewMode] = useState<'lista' | 'galeria'>('galeria')
   const [sortBy, setSortBy] = useState<'nombre' | 'precio-asc' | 'precio-desc' | 'stock-desc'>('nombre')
@@ -64,14 +66,18 @@ export default function VendedorPanel() {
   function addToCart(p: Producto) {
     setCart(prev => {
       const ex = prev.find(i => i.productoId === p.id)
-      if (ex) return prev.map(i => i.productoId === p.id ? { ...i, cantidad: i.cantidad + 1 } : i)
-      return [...prev, { productoId: p.id, nombre: p.nombre, precio: p.precio, cantidad: 1, imagen: p.imagen }]
+      if (ex) {
+        if (ex.cantidad >= p.stock) return prev
+        return prev.map(i => i.productoId === p.id ? { ...i, cantidad: i.cantidad + 1 } : i)
+      }
+      if (p.stock <= 0) return prev
+      return [...prev, { productoId: p.id, nombre: p.nombre, precio: p.precio, cantidad: 1, stock: p.stock, imagen: p.imagen }]
     })
   }
 
   function setQty(id: string, qty: number) {
     if (qty <= 0) setCart(prev => prev.filter(i => i.productoId !== id))
-    else setCart(prev => prev.map(i => i.productoId === id ? { ...i, cantidad: qty } : i))
+    else setCart(prev => prev.map(i => i.productoId === id ? { ...i, cantidad: Math.min(qty, i.stock) } : i))
   }
 
   function removeItem(id: string) {
@@ -123,6 +129,35 @@ export default function VendedorPanel() {
       setMsg(`Error: ${err.message}`)
     } finally {
       setGenerando(false)
+    }
+  }
+
+  async function handleCobrarEfectivo() {
+    if (cart.length === 0) { setMsg('Agregá al menos un producto'); return }
+    setCobrandoEfectivo(true)
+    setMsg('')
+    try {
+      const res = await fetch('/api/vendedor/confirmar-efectivo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nombre: clienteNombre || null,
+          telefono: clienteTelefono || null,
+          direccion: clienteDireccion || null,
+          altura: clienteAltura || null,
+          provincia: clienteProvincia || null,
+          items: cart,
+          vendedorId: user?.uid,
+          vendedorNombre: profile?.nombre || user?.email,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Error al confirmar')
+      setState('pagado')
+    } catch (err: any) {
+      setMsg(`Error: ${err.message}`)
+    } finally {
+      setCobrandoEfectivo(false)
     }
   }
 
@@ -458,15 +493,26 @@ export default function VendedorPanel() {
           </div>
         )}
 
-        <button
-          onClick={handleGenerarQR}
-          disabled={cart.length === 0 || generando}
-          className="w-full flex items-center justify-center gap-2 py-3 rounded-sm font-semibold text-sm disabled:opacity-40 hover:opacity-80 transition-opacity"
-          style={{ backgroundColor: '#3D1A05', color: '#F2E6C8' }}
-        >
-          {generando ? <RefreshCw size={15} className="animate-spin" /> : <QrCode size={15} />}
-          {generando ? 'Generando...' : 'Generar QR de cobro'}
-        </button>
+        <div className="flex flex-col gap-2">
+          <button
+            onClick={handleGenerarQR}
+            disabled={cart.length === 0 || generando || cobrandoEfectivo}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-sm font-semibold text-sm disabled:opacity-40 hover:opacity-80 transition-opacity"
+            style={{ backgroundColor: '#3D1A05', color: '#F2E6C8' }}
+          >
+            {generando ? <RefreshCw size={15} className="animate-spin" /> : <QrCode size={15} />}
+            {generando ? 'Generando...' : 'Generar QR de cobro'}
+          </button>
+          <button
+            onClick={handleCobrarEfectivo}
+            disabled={cart.length === 0 || generando || cobrandoEfectivo}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-sm font-semibold text-sm disabled:opacity-40 hover:opacity-80 transition-opacity"
+            style={{ backgroundColor: '#4A5E1A', color: '#F2E6C8' }}
+          >
+            {cobrandoEfectivo ? <RefreshCw size={15} className="animate-spin" /> : <CheckCircle size={15} />}
+            {cobrandoEfectivo ? 'Registrando...' : 'Cobrar en efectivo'}
+          </button>
+        </div>
       </div>
     </div>
   )

@@ -34,6 +34,7 @@ function cartReducer(state: CartState, action: CartAction): CartState {
     case 'ADD': {
       const existing = state.items.find((i) => i.producto.id === action.producto.id)
       if (existing) {
+        if (existing.cantidad >= action.producto.stock) return state
         return {
           ...state,
           items: state.items.map((i) =>
@@ -43,6 +44,7 @@ function cartReducer(state: CartState, action: CartAction): CartState {
           ),
         }
       }
+      if (action.producto.stock <= 0) return state
       return {
         ...state,
         items: [...state.items, { producto: action.producto, cantidad: 1 }],
@@ -56,7 +58,9 @@ function cartReducer(state: CartState, action: CartAction): CartState {
       return {
         ...state,
         items: state.items.map((i) =>
-          i.producto.id === action.id ? { ...i, cantidad: i.cantidad + 1 } : i
+          i.producto.id === action.id && i.cantidad < i.producto.stock
+            ? { ...i, cantidad: i.cantidad + 1 }
+            : i
         ),
       }
 

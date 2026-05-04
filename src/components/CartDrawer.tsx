@@ -256,7 +256,7 @@ export default function CartDrawer() {
                   </p>
 
                   {/* Controles cantidad */}
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <button
                       onClick={() => decrement(item.producto.id)}
                       className="w-6 h-6 rounded-sm flex items-center justify-center hover:opacity-70"
@@ -269,11 +269,15 @@ export default function CartDrawer() {
                     </span>
                     <button
                       onClick={() => increment(item.producto.id)}
-                      className="w-6 h-6 rounded-sm flex items-center justify-center hover:opacity-70"
+                      disabled={item.cantidad >= item.producto.stock}
+                      className="w-6 h-6 rounded-sm flex items-center justify-center transition-opacity disabled:opacity-30"
                       style={{ backgroundColor: '#DDD0A8', color: '#3D1A05' }}
                     >
                       <Plus size={12} />
                     </button>
+                    {item.cantidad >= item.producto.stock && (
+                      <span style={{ color: '#A0622A', fontSize: '0.7rem' }}>máx. {item.producto.stock}</span>
+                    )}
                   </div>
                 </div>
 
