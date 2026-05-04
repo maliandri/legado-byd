@@ -460,11 +460,19 @@ const PanfletoContent = forwardRef<HTMLDivElement, { config: PanfletConfig }>(
                 }}>
                   Nuestros productos
                 </h3>
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: `repeat(${config.productos.length === 1 ? 1 : 2}, 1fr)`,
-                  gap: 10,
-                }}>
+                {(() => {
+                  const n = config.productos.length
+                  const cols = n <= 2 ? n : 2
+                  // Altura de imagen según cantidad: 1→220, 2→180, 3-4→120, 5-6→90 (ajustado para 2x1)
+                  const imgH = isDosX1
+                    ? (n <= 2 ? 100 : n <= 4 ? 72 : 60)
+                    : (n === 1 ? 220 : n === 2 ? 180 : n <= 4 ? 120 : 90)
+                  return (
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: `repeat(${cols}, 1fr)`,
+                    gap: 10,
+                  }}>
                   {config.productos.slice(0, 6).map(p => (
                     <div key={p.id} style={{
                       backgroundColor: pal.card,
@@ -478,20 +486,22 @@ const PanfletoContent = forwardRef<HTMLDivElement, { config: PanfletConfig }>(
                           src={p.imagen}
                           alt={p.nombre}
                           crossOrigin="anonymous"
-                          style={{ width: '100%', height: isDosX1 ? 64 : 90, objectFit: 'cover', display: 'block' }}
+                          style={{ width: '100%', height: imgH, objectFit: 'cover', display: 'block' }}
                         />
                       )}
                       <div style={{ padding: isDosX1 ? '6px 10px' : '8px 12px' }}>
-                        <p style={{ color: pal.texto, fontSize: isDosX1 ? 11 : 13, fontWeight: 600, margin: 0, lineHeight: 1.3 }}>
+                        <p style={{ color: pal.texto, fontSize: isDosX1 ? 11 : (n <= 2 ? 15 : 13), fontWeight: 600, margin: 0, lineHeight: 1.3 }}>
                           {p.nombre}
                         </p>
-                        <p style={{ color: pal.acento, fontSize: isDosX1 ? 12 : 15, fontWeight: 700, margin: 0, marginTop: 3 }}>
+                        <p style={{ color: pal.acento, fontSize: isDosX1 ? 12 : (n <= 2 ? 17 : 15), fontWeight: 700, margin: 0, marginTop: 3 }}>
                           ${p.precio.toLocaleString('es-AR')}
                         </p>
                       </div>
                     </div>
                   ))}
                 </div>
+                  )
+                })()}
               </div>
             )}
 
