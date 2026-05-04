@@ -1,29 +1,22 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Image from 'next/image'
 import { Menu, X, ShoppingCart, UserCircle } from 'lucide-react'
 import { useCart } from '@/context/CartContext'
 import { useAuth } from '@/hooks/useAuth'
-import { getCategorias } from '@/lib/firebase/firestore'
-import type { Categoria } from '@/types'
 
-const FALLBACK: Categoria[] = []
+const NAV_LINKS = [
+  { label: 'Nosotros', href: '/#nosotros' },
+  { label: 'Legado Social', href: '/#legado-social' },
+  { label: 'Catálogo', href: '/#catalogo' },
+]
 
 export default function Navbar() {
   const [open, setOpen] = useState(false)
-  const [categorias, setCategorias] = useState<Categoria[]>(FALLBACK)
-  const [cargandoCats, setCargandoCats] = useState(true)
 
   const { totalItems, setOpen: setCartOpen } = useCart()
   const { user, profile, isAdmin, isVendedor, isCustomer } = useAuth()
-
-  useEffect(() => {
-    getCategorias()
-      .then(cats => { if (cats.length) setCategorias(cats) })
-      .catch(() => {})
-      .finally(() => setCargandoCats(false))
-  }, [])
 
   return (
     <nav
@@ -64,21 +57,14 @@ export default function Navbar() {
 
           {/* Desktop nav */}
           <div className="hidden md:flex items-center gap-5">
-            {cargandoCats ? (
-              <span style={{ color: '#A0622A', fontSize: '0.8rem', fontStyle: 'italic' }}>
-                Legado… cargando categorías
-              </span>
-            ) : (
-              categorias.map((cat) => (
-                <a key={cat.slug} href={`#${cat.slug}`}
-                  style={{ color: '#4A5E1A' }}
-                  className="text-sm font-semibold hover:opacity-70 transition-opacity flex items-center gap-1"
-                >
-                  <span>{cat.emoji}</span>
-                  <span>{cat.nombre}</span>
-                </a>
-              ))
-            )}
+            {NAV_LINKS.map(link => (
+              <a key={link.href} href={link.href}
+                style={{ color: '#4A5E1A' }}
+                className="text-sm font-semibold hover:opacity-70 transition-opacity"
+              >
+                {link.label}
+              </a>
+            ))}
 
             <button onClick={() => setCartOpen(true)}
               className="relative flex items-center gap-1.5 px-3 py-2 rounded-sm text-sm font-semibold hover:opacity-80 transition-opacity"
@@ -156,21 +142,14 @@ export default function Navbar() {
       {open && (
         <div style={{ backgroundColor: '#EDD9A3', borderTop: '1px solid #C4A040' }}
           className="md:hidden px-4 pb-4 pt-2 flex flex-col gap-3">
-          {cargandoCats ? (
-            <span style={{ color: '#A0622A', fontSize: '0.8rem', fontStyle: 'italic' }}>
-              Legado… cargando categorías
-            </span>
-          ) : (
-            categorias.map((cat) => (
-              <a key={cat.slug} href={`#${cat.slug}`}
-                style={{ color: '#4A5E1A' }}
-                className="flex items-center gap-2 py-2 text-sm font-semibold"
-                onClick={() => setOpen(false)}>
-                <span>{cat.emoji}</span>
-                <span>{cat.nombre}</span>
-              </a>
-            ))
-          )}
+          {NAV_LINKS.map(link => (
+            <a key={link.href} href={link.href}
+              style={{ color: '#4A5E1A' }}
+              className="py-2 text-sm font-semibold"
+              onClick={() => setOpen(false)}>
+              {link.label}
+            </a>
+          ))}
 
           {/* Separador */}
           <div style={{ borderTop: '1px solid #C4A040', opacity: 0.4, margin: '4px 0' }} />

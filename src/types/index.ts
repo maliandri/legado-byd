@@ -96,6 +96,45 @@ export interface Order {
   vendedorNombre?: string
 }
 
+// ── Social Feed ───────────────────────────────────────────────────────────
+
+export type PostTipo = 'producto' | 'libre'
+
+export interface Post {
+  id: string
+  tipo: PostTipo
+  contenido: string
+  // si tipo === 'producto'
+  productoId?: string
+  productoNombre?: string
+  productoImagen?: string
+  productoPrecio?: number
+  // si tipo === 'libre'
+  imagen?: string
+  // metadata
+  autorId: string
+  autorNombre: string
+  createdAt: Date
+  comentariosCount?: number
+}
+
+export interface Comentario {
+  id: string
+  texto: string
+  autorId: string
+  autorNombre: string
+  createdAt: Date
+}
+
+// ── Nosotros ──────────────────────────────────────────────────────────────
+
+export interface NosotrosContent {
+  sobre_nosotros: string
+  vision: string
+  mision: string
+  updatedAt?: Date
+}
+
 export interface ItemPedido {
   productoId: string
   nombre: string

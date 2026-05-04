@@ -42,11 +42,17 @@ npx netlify env:set KEY value --context production  # variables de entorno
 productos/{id}    — nombre, descripcion, precio, categoria (slug), stock, imagen (Cloudinary URL),
                     subfamilia?, marca?, iva?, costo?, createdAt, updatedAt
 categorias/{id}   — nombre, slug, emoji
-usuarios/{uid}    — email, nombre, tipo ('cliente'|'empresa'), dni?, fechaNacimiento?,
+usuarios/{uid}    — email, nombre, tipo ('cliente'|'empresa'|'vendedor'), dni?, fechaNacimiento?,
                     cuit?, razonSocial?, telefono, direccion, ciudad, provincia,
                     favoritos[], perfilCompleto, bloqueado?, createdAt
 otps/{uid}        — code, expiresAt, createdAt  (TTL 10 min, se elimina al verificar)
 pedidos/{uid}/ordenes/{id}  — uid, items[], total, estado, createdAt
+orders/{id}       — colección plana para OperacionesPanel. Campos:
+                    cliente_uid?, email_cliente?, nombre_cliente?, telefono_cliente?,
+                    direccion_entrega?, altura_entrega?, provincia_entrega?,
+                    canal ('mercadopago'|'whatsapp'|'vendedor'),
+                    vendedorId?, vendedorNombre?,
+                    estado (OrdenEstado), items[], monto_total, createdAt, updatedAt?
 ```
 
 ### FIREBASE_PRIVATE_KEY en Netlify
@@ -81,10 +87,11 @@ Google OAuth: intenta `signInWithPopup` primero; si falla con `auth/popup-blocke
 Protegido por `AdminGuard` (verifica `isAdmin`). Tabs:
 | Tab | Funcionalidad |
 |-----|---------------|
-| **Productos** | CRUD, BulkImageUpload (auto-match por nombre), Descripciones IA (gemini-bulk), Publicar Sheet (import), Backup Sheet (sync) |
+| **Productos** | CRUD, BulkImageUpload (auto-match por nombre), Descripciones IA (gemini-bulk), Publicar Sheet (import), Backup Sheet (sync), **Subir precios %** (botón azul → modal con %, llama `/api/admin/subir-precios`, batch de 500), **Limpiar IVA** (botón violeta → normaliza valores corruptos vía `/api/admin/limpiar-iva`) |
 | **Categorías** | CRUD — el slug se auto-genera desde el nombre |
 | **Emails** | `EmailMasivo`: tag-input de hasta 100 destinatarios, intervalo configurable, prompt → Gemini genera asunto+cuerpo HTML, preview, progreso con cancel. Throttling client-side via setTimeout |
 | **Usuarios** | `UsuariosPanel`: listar/buscar/filtrar, bloquear (actualiza Firestore + Firebase Auth `disabled`), eliminar (Firestore + Auth), enviar email (manual o con Gemini), enviar ficha de producto |
+| **Operaciones** | Muestra colección `orders` plana. Modal de detalle muestra cliente, canal, ítems, monto, estado, **datos de entrega** (teléfono, dirección+altura, provincia) cuando están disponibles |
 
 ## API Routes (`src/app/api/`)
 
@@ -107,6 +114,10 @@ Todas usan `export const runtime = 'nodejs'`. En Next.js 16, los params de rutas
 | `admin/enviar-email` | POST | Envía email individual via Resend con template Legado |
 | `admin/enviar-producto` | POST | Email con ficha de producto a un usuario |
 | `admin/buscar-productos` | GET | Búsqueda de productos por nombre (?q=) via adminDb |
+| `admin/subir-precios` | POST | Sube todos los precios un porcentaje (1–1000%). Batch de 500, `Math.round(precio * (1 + pct/100))` |
+| `admin/limpiar-iva` | POST | Normaliza IVA corrupto en Firestore: `105→10.5`, rango 10–11→10.5, 20–22→21, inválido→delete |
+| `mercadopago/crear-preferencia` | POST | Crea preferencia MP + guarda en `pedidos/{uid}/ordenes` y `orders`. Acepta `vendedorId`, `telefono`, `direccion`, `altura`, `provincia` |
+| `mercadopago/webhook` | POST | Webhook MP: actualiza estado en `pedidos` y `orders` según payment.status |
 
 ## Sistema de emails (Resend)
 Todas las funciones están en `src/lib/resend/client.ts`:
@@ -116,6 +127,26 @@ Todas las funciones están en `src/lib/resend/client.ts`:
 - `sendContactEmail` — formulario de contacto
 
 Emails con template propio: fondo `#F9EDD3`, header/footer `#3D1A05`, borde `#C4A040`.
+
+## SEO
+- **`src/app/layout.tsx`**: metadata global con `metadataBase`, title template (`%s | Legado Bazar y Deco`), OG, Twitter card, `verification.google` (`NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION`). JSON-LD `LocalBusiness` en `<head>`.
+- **`src/app/sitemap.ts`**: sitemap dinámico vía `adminDb()`. Incluye páginas estáticas + `/producto/[id]` para cada producto con `lastModified`.
+- **`src/app/robots.ts`**: desactiva `/admin/`, `/api/`, `/vendedor/`, `/registro/`, `/mi-cuenta/`. Referencia `/sitemap.xml`.
+- **`src/app/producto/[id]/page.tsx`**: convertido a server component. Exporta `generateMetadata` con `adminDb()` → título, descripción, canonical, OG con imagen Cloudinary, Twitter card. Renderiza `<ProductoClient id={id} />`.
+- **Pendiente:** agregar `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION` en Netlify y verificar en Google Search Console.
+
+## Catálogo — vista galería
+`ProductGrid` (`src/components/ProductGrid.tsx`) tiene toggle lista/galería para todos los usuarios. En galería: grid `grid-cols-2 sm:grid-cols-4`, cards con `aspect-ratio: 1/1`, imagen `object-cover`, gradiente oscuro de abajo, nombre (line-clamp-2) y precio en dorado superpuestos. Badge "Sin stock" si `stock === 0`.
+
+## Panel vendedor (`/vendedor`)
+`VendedorPanel` (`src/components/vendedor/VendedorPanel.tsx`):
+- **Vista galería** (por defecto): grid `grid-cols-2 sm:grid-cols-3` con misma `GaleriaCard`-style. Toggle lista/galería en barra superior.
+- **Filtros**: buscador por nombre, ordenar (A→Z, precio asc, precio desc, stock desc), checkbox "Solo con stock". Calculados con `useMemo`.
+- **Carrito vendedor**: campos de entrega — teléfono, dirección, altura (número de puerta), provincia/localidad. Guardados en `orders` y `pedidos/{uid}/ordenes` vía API `crear-preferencia`.
+
+## Portal cliente (`/mi-cuenta`)
+- Usuarios con `tipo === 'vendedor'` ven badge "Vendedor" azul y botón "Punto de venta" en header que enlaza a `/vendedor`.
+- `CartDrawer`: al confirmar pedido web, incluye automáticamente `telefono`, `direccion`, `provincia` del perfil del cliente logueado en el email y en Firestore (`orders`).
 
 ## Google Sheets (`import-sheets` / `sync-sheets`)
 Hoja "publico", columnas A2:L2000:
@@ -147,7 +178,9 @@ Tipografía: **Playfair Display** (títulos serif) + **Inter** (cuerpo).
 
 **Filtrado de categorías:** `getProductosByCategoria` requiere índice compuesto. Se carga todo con `getProductos()` y se filtra en cliente.
 
-**Undefined en Firestore:** Antes de todo `updateDoc`/`addDoc`, filtrar con `Object.fromEntries(Object.entries(data).filter(([, v]) => v !== undefined))` para evitar "Unsupported field value: undefined".
+**Undefined en Firestore:** Antes de todo `updateDoc`/`addDoc`, filtrar con `Object.fromEntries(Object.entries(data).filter(([, v]) => v !== undefined))` para evitar "Unsupported field value: undefined". Alternativa más legible: spread condicional `...(field ? { key: field } : {})`.
+
+**Google Sheets — IVA bug:** `parseNum` reemplaza todas las comas antes de parsear (trata coma como separador de miles). Eso convierte `"10,5"` → `105`. La API `limpiar-iva` corrige estos valores en Firestore. Al mostrar IVA en UI usar `String(p.iva).replace('.', ',')` para formato argentino.
 
 **Navbar categorías:** Carga desde Firestore al montar. Estado intermedio: "Legado… cargando categorías". Sin fallback hardcodeado.
 
@@ -180,4 +213,6 @@ GEMINI_API_KEY
 GOOGLE_SHEET_ID
 NEXT_PUBLIC_WHATSAPP_NUMBER    # 5492991234567 → formateado en Footer
 NEXT_PUBLIC_APP_URL            # https://legadobyd.com
+NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION  # token de Google Search Console (sin "google-site-verification=")
+MERCADOPAGO_ACCESS_TOKEN       # access token de MercadoPago
 ```

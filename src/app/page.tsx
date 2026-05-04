@@ -6,36 +6,28 @@ import Footer from '@/components/Footer'
 import ProductGrid from '@/components/ProductGrid'
 import WhatsAppButton from '@/components/WhatsAppButton'
 import WheatBackground from '@/components/WheatBackground'
+import NosotrosSection from '@/components/home/NosotrosSection'
+import LegadoSocialSection from '@/components/home/LegadoSocialSection'
 import { getCategorias } from '@/lib/firebase/firestore'
 import type { Categoria } from '@/types'
 
-const CATEGORIAS_FALLBACK: Categoria[] = [
-  { id: '1', nombre: 'Panadería', slug: 'panaderia', emoji: '🍞' },
-  { id: '2', nombre: 'Pastelería', slug: 'pasteleria', emoji: '🎂' },
-  { id: '3', nombre: 'Decoración', slug: 'decoracion', emoji: '✨' },
-]
-
 export default function HomePage() {
-  const [categorias, setCategorias] = useState<Categoria[]>(CATEGORIAS_FALLBACK)
+  const [categorias, setCategorias] = useState<Categoria[]>([])
 
   useEffect(() => {
     getCategorias().then(cats => { if (cats.length) setCategorias(cats) }).catch(() => {})
   }, [])
-
   return (
     <>
       <Navbar />
       <main style={{ position: 'relative' }}>
         <WheatBackground />
+
         {/* ── HERO ── */}
         <section
           className="relative overflow-hidden"
-          style={{
-            backgroundColor: '#FDF8EE',
-            minHeight: '520px',
-          }}
+          style={{ backgroundColor: '#FDF8EE', minHeight: '520px' }}
         >
-          {/* Textura de fondo */}
           <div
             className="absolute inset-0 opacity-10"
             style={{
@@ -44,7 +36,6 @@ export default function HomePage() {
           />
 
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 flex flex-col items-center text-center">
-            {/* Ornamento superior */}
             <div className="flex items-center gap-3 mb-6">
               <div style={{ width: 60, height: 1, backgroundColor: '#C4A040' }} />
               <span style={{ color: '#C4A040', fontSize: '1.2rem' }}>✦</span>
@@ -89,7 +80,6 @@ export default function HomePage() {
               con el sabor artesanal de siempre. Calidad que se transmite de generación en generación.
             </p>
 
-            {/* CTA buttons */}
             <div className="flex flex-wrap gap-4 justify-center">
               <a
                 href="#catalogo"
@@ -109,7 +99,6 @@ export default function HomePage() {
               </a>
             </div>
 
-            {/* Ornamento inferior */}
             <div className="flex items-center gap-3 mt-12">
               <div style={{ width: 40, height: 1, backgroundColor: 'rgba(196,160,64,0.4)' }} />
               <span style={{ color: 'rgba(196,160,64,0.6)', fontSize: '0.9rem' }}>✦</span>
@@ -118,55 +107,15 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* ── CATEGORÍAS ── */}
-        <section
-          style={{ backgroundColor: '#F2E6C8', borderBottom: '2px solid #DDD0A8' }}
-          className="py-12"
-        >
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto">
-              {categorias.map((cat) => (
-                <a
-                  key={cat.slug}
-                  href={`#${cat.slug}`}
-                  className="flex flex-col items-center gap-3 p-5 rounded-sm text-center transition-all hover:-translate-y-1 group"
-                  style={{
-                    backgroundColor: '#FDF8EE',
-                    border: '1px solid #DDD0A8',
-                  }}
-                  id={cat.slug}
-                >
-                  <span
-                    className="text-4xl group-hover:scale-110 transition-transform"
-                    role="img"
-                    aria-label={cat.nombre}
-                  >
-                    {cat.emoji}
-                  </span>
-                  <span
-                    style={{
-                      fontFamily: "'Playfair Display', serif",
-                      color: '#3D1A05',
-                      fontWeight: 600,
-                      fontSize: '0.95rem',
-                    }}
-                  >
-                    {cat.nombre}
-                  </span>
-                  <div
-                    style={{ width: 30, height: 2, backgroundColor: '#C4A040' }}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity"
-                  />
-                </a>
-              ))}
-            </div>
-          </div>
-        </section>
+        {/* ── NOSOTROS ── */}
+        <NosotrosSection />
+
+        {/* ── LEGADO SOCIAL ── */}
+        <LegadoSocialSection />
 
         {/* ── CATÁLOGO ── */}
         <section id="catalogo" className="py-16" style={{ backgroundColor: '#FDF8EE' }}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            {/* Encabezado de sección */}
             <div className="text-center mb-12">
               <p
                 style={{

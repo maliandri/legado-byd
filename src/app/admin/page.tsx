@@ -14,14 +14,16 @@ import {
   updateCategoria,
   deleteCategoria,
 } from '@/lib/firebase/firestore'
-import { LogOut, ShoppingBag, LayoutGrid, RefreshCw, Plus, Pencil, Trash2, FileSpreadsheet, Mail, Users, ClipboardList, ImagePlus, Film, TrendingUp, X, Percent } from 'lucide-react'
+import { LogOut, ShoppingBag, LayoutGrid, RefreshCw, Plus, Pencil, Trash2, FileSpreadsheet, Mail, Users, ClipboardList, ImagePlus, Film, TrendingUp, X, Percent, BookOpen, Rss } from 'lucide-react'
 import OperacionesPanel from '@/components/admin/operaciones/OperacionesPanel'
 import PublicacionLibre from '@/components/admin/PublicacionLibre'
 import ReelCreator from '@/components/admin/ReelCreator'
+import NosotrosAdmin from '@/components/admin/NosotrosAdmin'
+import SocialAdmin from '@/components/admin/SocialAdmin'
 import type { Categoria } from '@/types'
 import { useEffect } from 'react'
 
-type Tab = 'productos' | 'categorias' | 'emails' | 'usuarios' | 'operaciones' | 'publicar' | 'reel'
+type Tab = 'productos' | 'categorias' | 'emails' | 'usuarios' | 'operaciones' | 'publicar' | 'reel' | 'nosotros' | 'social'
 
 export default function AdminPage() {
   return (
@@ -249,6 +251,14 @@ function AdminPanel() {
               <Film size={15} className="inline mr-1.5" />
               Reel
             </button>
+            <button style={tabStyle(tab === 'nosotros')} onClick={() => setTab('nosotros')}>
+              <BookOpen size={15} className="inline mr-1.5" />
+              Nosotros
+            </button>
+            <button style={tabStyle(tab === 'social')} onClick={() => setTab('social')}>
+              <Rss size={15} className="inline mr-1.5" />
+              Social
+            </button>
           </div>
         </div>
       </div>
@@ -390,6 +400,8 @@ function AdminPanel() {
         {tab === 'operaciones' && <OperacionesPanel />}
         {tab === 'publicar' && <PublicacionLibre />}
         {tab === 'reel' && <ReelCreator />}
+        {tab === 'nosotros' && <NosotrosAdmin />}
+        {tab === 'social' && <SocialAdmin />}
       </main>
     </div>
   )
