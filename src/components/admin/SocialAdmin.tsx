@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Plus, Trash2, Loader2, ImagePlus, X, Search, Package } from 'lucide-react'
+import { Plus, Trash2, Loader2, ImagePlus, X, Search, Package, ChevronDown } from 'lucide-react'
 import Image from 'next/image'
 import { useAuth } from '@/hooks/useAuth'
-import type { Post, Producto } from '@/types'
+import { getCategorias } from '@/lib/firebase/firestore'
+import type { Post, Producto, Categoria } from '@/types'
 
 export default function SocialAdmin() {
   const { user } = useAuth()
@@ -89,6 +90,8 @@ function PostForm({ user, onCreated }: { user: any; onCreated: (p: Post) => void
   const [uploadingImg, setUploadingImg] = useState(false)
   const [producto, setProducto] = useState<Producto | null>(null)
   const [query, setQuery] = useState('')
+  const [categoriaFiltro, setCategoriaFiltro] = useState('')
+  const [categorias, setCategorias] = useState<Categoria[]>([])
   const [resultados, setResultados] = useState<Producto[]>([])
   const [buscando, setBuscando] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -96,19 +99,35 @@ function PostForm({ user, onCreated }: { user: any; onCreated: (p: Post) => void
   const fileRef = useRef<HTMLInputElement>(null)
   const searchTimer = useRef<NodeJS.Timeout | null>(null)
 
-  function handleQueryChange(v: string) {
-    setQuery(v)
+  useEffect(() => {
+    getCategorias().then(cats => setCategorias(cats)).catch(() => {})
+  }, [])
+
+  function buscarProductos(q: string, cat: string) {
     if (searchTimer.current) clearTimeout(searchTimer.current)
-    if (!v.trim()) { setResultados([]); return }
+    if (!q.trim() && !cat) { setResultados([]); setBuscando(false); return }
     setBuscando(true)
     searchTimer.current = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/admin/buscar-productos?q=${encodeURIComponent(v)}`)
+        const params = new URLSearchParams()
+        if (q.trim()) params.set('q', q.trim())
+        if (cat) params.set('categoria', cat)
+        const res = await fetch(`/api/admin/buscar-productos?${params}`)
         const data = await res.json()
         setResultados(Array.isArray(data) ? data : [])
       } catch {}
       finally { setBuscando(false) }
-    }, 350)
+    }, 300)
+  }
+
+  function handleQueryChange(v: string) {
+    setQuery(v)
+    buscarProductos(v, categoriaFiltro)
+  }
+
+  function handleCategoriaChange(cat: string) {
+    setCategoriaFiltro(cat)
+    buscarProductos(query, cat)
   }
 
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -123,6 +142,13 @@ function PostForm({ user, onCreated }: { user: any; onCreated: (p: Post) => void
       if (data.url) setImagen(data.url)
     } catch {}
     finally { setUploadingImg(false) }
+  }
+
+  function clearProducto() {
+    setProducto(null)
+    setQuery('')
+    setCategoriaFiltro('')
+    setResultados([])
   }
 
   async function handleSubmit() {
@@ -170,7 +196,7 @@ function PostForm({ user, onCreated }: { user: any; onCreated: (p: Post) => void
       {/* Tipo selector */}
       <div className="flex gap-3 mb-4">
         {(['libre', 'producto'] as const).map(t => (
-          <button key={t} onClick={() => { setTipo(t); setProducto(null); setQuery(''); setResultados([]) }}
+          <button key={t} onClick={() => { setTipo(t); clearProducto(); setImagen('') }}
             className="px-4 py-2 rounded-sm text-sm font-semibold transition-all"
             style={{
               backgroundColor: tipo === t ? '#3D1A05' : '#FDF8EE',
@@ -230,35 +256,66 @@ function PostForm({ user, onCreated }: { user: any; onCreated: (p: Post) => void
                 <p style={{ color: '#3D1A05', fontWeight: 600, fontSize: '0.9rem' }}>{producto.nombre}</p>
                 <p style={{ color: '#A0622A', fontSize: '0.8rem' }}>${producto.precio.toLocaleString('es-AR')}</p>
               </div>
-              <button onClick={() => { setProducto(null); setQuery(''); setResultados([]) }}
-                style={{ color: '#A0622A' }}><X size={16} /></button>
+              <button onClick={clearProducto} style={{ color: '#A0622A' }}><X size={16} /></button>
             </div>
           ) : (
-            <div className="relative">
-              <div className="flex items-center gap-2" style={{ ...inputStyle, padding: '10px 12px' }}>
-                <Search size={15} style={{ color: '#A0622A', flexShrink: 0 }} />
-                <input value={query} onChange={e => handleQueryChange(e.target.value)}
-                  placeholder="Buscar producto..." className="flex-1 bg-transparent outline-none"
-                  style={{ color: '#3D1A05', fontSize: '0.9rem' }} />
-                {buscando && <Loader2 size={14} className="animate-spin" style={{ color: '#A0622A' }} />}
-              </div>
-              {resultados.length > 0 && (
-                <div className="absolute left-0 right-0 top-full mt-1 rounded-sm shadow-lg z-20 overflow-hidden"
-                  style={{ backgroundColor: '#FDF8EE', border: '1px solid #DDD0A8', maxHeight: 200, overflowY: 'auto' }}>
-                  {resultados.map(p => (
-                    <button key={p.id} onClick={() => { setProducto(p); setResultados([]) }}
-                      className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-amber-50 transition-colors">
-                      {p.imagen
-                        ? <Image src={p.imagen} alt={p.nombre} width={32} height={32} className="rounded-sm object-cover" style={{ width: 32, height: 32 }} />
-                        : <Package size={28} style={{ color: '#DDD0A8' }} />}
-                      <div>
-                        <p style={{ color: '#3D1A05', fontSize: '0.85rem', fontWeight: 500 }}>{p.nombre}</p>
-                        <p style={{ color: '#A0622A', fontSize: '0.75rem' }}>${p.precio.toLocaleString('es-AR')}</p>
-                      </div>
+            <div>
+              {/* Filtro por categoría */}
+              {categorias.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-2">
+                  <button
+                    onClick={() => handleCategoriaChange('')}
+                    className="px-3 py-1 rounded-full text-xs font-semibold transition-all"
+                    style={{
+                      backgroundColor: !categoriaFiltro ? '#3D1A05' : '#FDF8EE',
+                      color: !categoriaFiltro ? '#C4A040' : '#6B3A1A',
+                      border: '1px solid #DDD0A8',
+                    }}>
+                    Todas
+                  </button>
+                  {categorias.map(cat => (
+                    <button key={cat.slug}
+                      onClick={() => handleCategoriaChange(cat.slug)}
+                      className="px-3 py-1 rounded-full text-xs font-semibold transition-all"
+                      style={{
+                        backgroundColor: categoriaFiltro === cat.slug ? '#3D1A05' : '#FDF8EE',
+                        color: categoriaFiltro === cat.slug ? '#C4A040' : '#6B3A1A',
+                        border: '1px solid #DDD0A8',
+                      }}>
+                      {cat.emoji} {cat.nombre}
                     </button>
                   ))}
                 </div>
               )}
+
+              {/* Buscador */}
+              <div className="relative">
+                <div className="flex items-center gap-2" style={{ ...inputStyle, padding: '10px 12px' }}>
+                  <Search size={15} style={{ color: '#A0622A', flexShrink: 0 }} />
+                  <input value={query} onChange={e => handleQueryChange(e.target.value)}
+                    placeholder={categoriaFiltro ? 'Buscar en esta categoría...' : 'Buscar producto por nombre...'}
+                    className="flex-1 bg-transparent outline-none"
+                    style={{ color: '#3D1A05', fontSize: '0.9rem' }} />
+                  {buscando && <Loader2 size={14} className="animate-spin" style={{ color: '#A0622A' }} />}
+                </div>
+                {resultados.length > 0 && (
+                  <div className="absolute left-0 right-0 top-full mt-1 rounded-sm shadow-lg z-20 overflow-hidden"
+                    style={{ backgroundColor: '#FDF8EE', border: '1px solid #DDD0A8', maxHeight: 220, overflowY: 'auto' }}>
+                    {resultados.map(p => (
+                      <button key={p.id} onClick={() => { setProducto(p); setResultados([]) }}
+                        className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-amber-50 transition-colors">
+                        {p.imagen
+                          ? <Image src={p.imagen} alt={p.nombre} width={36} height={36} className="rounded-sm object-cover flex-shrink-0" style={{ width: 36, height: 36 }} />
+                          : <Package size={28} style={{ color: '#DDD0A8', flexShrink: 0 }} />}
+                        <div>
+                          <p style={{ color: '#3D1A05', fontSize: '0.85rem', fontWeight: 500 }}>{p.nombre}</p>
+                          <p style={{ color: '#A0622A', fontSize: '0.75rem' }}>${p.precio.toLocaleString('es-AR')}</p>
+                        </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             </div>
           )}
         </div>

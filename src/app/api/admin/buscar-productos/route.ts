@@ -7,22 +7,28 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url)
     const q = (searchParams.get('q') || '').toLowerCase().trim()
-    if (!q) return NextResponse.json({ productos: [] })
+    const categoria = (searchParams.get('categoria') || '').toLowerCase().trim()
 
-    const snap = await adminDb().collection('productos').limit(200).get()
+    if (!q && !categoria) return NextResponse.json([])
+
+    const snap = await adminDb().collection('productos').limit(400).get()
     const todos = snap.docs.map(d => ({
       id: d.id,
       nombre: d.data().nombre as string,
       precio: d.data().precio as number,
       imagen: d.data().imagen as string,
-      descripcion: d.data().descripcion as string,
+      categoria: d.data().categoria as string,
     }))
 
     const productos = todos
-      .filter(p => p.nombre?.toLowerCase().includes(q))
-      .slice(0, 10)
+      .filter(p => {
+        const matchCat = categoria ? p.categoria?.toLowerCase() === categoria : true
+        const matchQ = q ? p.nombre?.toLowerCase().includes(q) : true
+        return matchCat && matchQ
+      })
+      .slice(0, 20)
 
-    return NextResponse.json({ productos })
+    return NextResponse.json(productos)
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
