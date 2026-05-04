@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Plus, Trash2, Loader2, ImagePlus, X, Search, Package, ChevronDown } from 'lucide-react'
+import { Plus, Trash2, Loader2, ImagePlus, X, Search, Package, ChevronDown, Instagram, CheckCircle2, AlertCircle } from 'lucide-react'
 import Image from 'next/image'
 import { useAuth } from '@/hooks/useAuth'
 import { getCategorias } from '@/lib/firebase/firestore'
@@ -340,9 +340,37 @@ function PostForm({ user, onCreated }: { user: any; onCreated: (p: Post) => void
 // ── Admin post card ────────────────────────────────────────────────────────
 
 function AdminPostCard({ post, onDelete }: { post: Post; onDelete: (id: string) => void }) {
+  const [igStatus, setIgStatus] = useState<'idle' | 'sending' | 'ok' | 'error'>('idle')
+  const [igMsg, setIgMsg] = useState('')
+
   const fecha = post.createdAt
     ? new Date(post.createdAt).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })
     : ''
+
+  async function publicarEnInstagram() {
+    setIgStatus('sending')
+    setIgMsg('')
+    try {
+      const res = await fetch('/api/instagram/publicar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          caption: post.contenido,
+          imageUrl: post.productoImagen || post.imagen || null,
+          type: 'post',
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      setIgStatus('ok')
+      setIgMsg('Enviado a Make.com')
+    } catch (err: any) {
+      setIgStatus('error')
+      setIgMsg(err.message)
+    } finally {
+      setTimeout(() => { setIgStatus('idle'); setIgMsg('') }, 4000)
+    }
+  }
 
   return (
     <div className="p-4 rounded-sm" style={{ backgroundColor: '#FDF8EE', border: '1px solid #DDD0A8' }}>
@@ -365,11 +393,34 @@ function AdminPostCard({ post, onDelete }: { post: Post; onDelete: (id: string) 
           <Image src={post.productoImagen || post.imagen!} alt="" width={64} height={64}
             className="rounded-sm object-cover flex-shrink-0" style={{ width: 64, height: 64 }} />
         )}
-        <button onClick={() => onDelete(post.id)}
-          className="flex-shrink-0 p-1.5 rounded-sm transition-opacity hover:opacity-70"
-          style={{ color: '#B91C1C' }} title="Eliminar post">
-          <Trash2 size={16} />
-        </button>
+        <div className="flex flex-col gap-1 flex-shrink-0">
+          {/* Publicar en Instagram */}
+          <button
+            onClick={publicarEnInstagram}
+            disabled={igStatus === 'sending'}
+            title="Publicar en Instagram"
+            className="flex items-center gap-1 px-2 py-1.5 rounded-sm text-xs font-semibold transition-opacity hover:opacity-80 disabled:opacity-50"
+            style={{
+              backgroundColor: igStatus === 'ok' ? '#EFF6E0' : igStatus === 'error' ? '#FDECEA' : '#E1306C',
+              color: igStatus === 'ok' ? '#4A5E1A' : igStatus === 'error' ? '#c62828' : '#fff',
+            }}
+          >
+            {igStatus === 'sending' ? <Loader2 size={13} className="animate-spin" /> :
+             igStatus === 'ok' ? <CheckCircle2 size={13} /> :
+             igStatus === 'error' ? <AlertCircle size={13} /> :
+             <Instagram size={13} />}
+            {igStatus === 'idle' ? 'Instagram' : igStatus === 'sending' ? '...' : igStatus === 'ok' ? 'Enviado' : 'Error'}
+          </button>
+          {igMsg && (
+            <p className="text-xs" style={{ color: igStatus === 'ok' ? '#4A5E1A' : '#c62828', maxWidth: 90, lineHeight: 1.3 }}>{igMsg}</p>
+          )}
+          {/* Eliminar */}
+          <button onClick={() => onDelete(post.id)}
+            className="p-1.5 rounded-sm transition-opacity hover:opacity-70 self-end"
+            style={{ color: '#B91C1C' }} title="Eliminar post">
+            <Trash2 size={16} />
+          </button>
+        </div>
       </div>
     </div>
   )
