@@ -49,7 +49,9 @@ export default async function ProductoPage(
   try {
     const snap = await adminDb().collection('productos').doc(id).get()
     if (snap.exists) {
-      initialProducto = { id: snap.id, ...snap.data() } as Producto
+      // Strip Firestore Timestamps — not serializable as Client Component props
+      const { createdAt: _c, updatedAt: _u, ...rest } = snap.data()!
+      initialProducto = { id: snap.id, ...rest } as Producto
     }
   } catch {}
   return <ProductoClient id={id} initialProducto={initialProducto} />

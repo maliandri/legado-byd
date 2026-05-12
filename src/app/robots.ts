@@ -6,7 +6,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/admin/', '/api/', '/vendedor/', '/registro/', '/mi-cuenta/'],
+        disallow: ['/admin/', '/api/', '/vendedor/', '/registro/', '/mi-cuenta/', '/pago/', '/login/'],
       },
     ],
     sitemap: 'https://legadobyd.com/sitemap.xml',
