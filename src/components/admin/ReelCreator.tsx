@@ -260,7 +260,11 @@ export default function ReelCreator() {
       let upData: any
       try { upData = JSON.parse(upText) } catch { throw new Error(`Cloudinary error: ${upText.slice(0, 120)}`) }
       if (!upRes.ok) throw new Error(upData.error?.message || `Cloudinary ${upRes.status}`)
-      const videoUrl = upData.secure_url
+
+      // Convertir webm → mp4 (H.264/AAC) via Cloudinary transform para Instagram
+      const videoUrl = (upData.secure_url as string)
+        .replace('/video/upload/', '/video/upload/vc_h264,ac_aac,q_80/')
+        .replace(/\.webm$/, '.mp4')
 
       setIgStatus('sending')
       const caption = slides.map(s => s.titulo).join(' · ') + '\n\n#legadobyd #panaderia #pasteleria #neuquen'
