@@ -12,12 +12,23 @@ import {
   ChevronLeft,
   Plus,
   Trash2,
+  Music,
+  Loader2,
 } from 'lucide-react'
 import { getProductos } from '@/lib/firebase/firestore'
 import type { Producto } from '@/types'
 import { LegadoReelService, type ReelSlide } from '@/utils/legadoReelService'
 
 type Step = 1 | 2 | 3
+
+interface Track {
+  id: string
+  nombre: string
+  artista: string
+  duracion: number
+  audioUrl: string
+  imagen: string
+}
 
 const THEMES = [
   { id: 'panaderia', label: 'Panadería', color: '#3D1A05' },
@@ -51,6 +62,13 @@ export default function ReelCreator() {
   const [previewing, setPreviewing] = useState(false)
   const [msg, setMsg] = useState('')
 
+  // Music
+  const [tracks, setTracks] = useState<Track[]>([])
+  const [loadingMusic, setLoadingMusic] = useState(false)
+  const [selectedTrack, setSelectedTrack] = useState<Track | null>(null)
+  const [previewingTrack, setPreviewingTrack] = useState<string | null>(null)
+  const audioPreviewRef = useRef<HTMLAudioElement | null>(null)
+
   const offscreenRef = useRef<HTMLCanvasElement>(null)
   const previewRef = useRef<HTMLCanvasElement>(null)
   const svcRef = useRef<LegadoReelService | null>(null)
@@ -63,13 +81,13 @@ export default function ReelCreator() {
   }, [])
 
   const selectedProductos = productos.filter(p => selectedIds.includes(p.id))
-  const filtered = productos.filter(p =>
-    !busqueda || p.nombre.toLowerCase().includes(busqueda.toLowerCase())
+  const filtered = productos.filter(
+    p => !busqueda || p.nombre.toLowerCase().includes(busqueda.toLowerCase()),
   )
 
   function toggleProduct(id: string) {
     setSelectedIds(prev =>
-      prev.includes(id) ? prev.filter(x => x !== id) : prev.length < 3 ? [...prev, id] : prev
+      prev.includes(id) ? prev.filter(x => x !== id) : prev.length < 3 ? [...prev, id] : prev,
     )
   }
 
@@ -91,7 +109,16 @@ export default function ReelCreator() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Error')
-      setSlides(data.slides ?? [])
+
+      const rawSlides: ReelSlide[] = data.slides ?? []
+
+      // Assign product images cycling through selected products
+      const withImages = rawSlides.map((slide, i) => ({
+        ...slide,
+        imagen: selectedProductos[i % selectedProductos.length]?.imagen || undefined,
+      }))
+
+      setSlides(withImages)
       setStep(2)
     } catch (err: any) {
       flash(`Error: ${err.message}`)
@@ -99,6 +126,43 @@ export default function ReelCreator() {
       setGenerandoScript(false)
     }
   }
+
+  async function cargarMusica() {
+    setLoadingMusic(true)
+    try {
+      const res = await fetch(`/api/admin/music?theme=${theme}`)
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Error')
+      setTracks(data.tracks ?? [])
+    } catch (err: any) {
+      flash(`Error al cargar música: ${err.message}`)
+    } finally {
+      setLoadingMusic(false)
+    }
+  }
+
+  function previewTrack(track: Track) {
+    if (audioPreviewRef.current) {
+      audioPreviewRef.current.pause()
+      audioPreviewRef.current = null
+    }
+    if (previewingTrack === track.id) {
+      setPreviewingTrack(null)
+      return
+    }
+    const audio = new Audio(track.audioUrl)
+    audio.volume = 0.5
+    audio.play().catch(() => {})
+    audioPreviewRef.current = audio
+    setPreviewingTrack(track.id)
+    audio.onended = () => setPreviewingTrack(null)
+  }
+
+  useEffect(() => {
+    return () => {
+      audioPreviewRef.current?.pause()
+    }
+  }, [])
 
   function updateSlide(idx: number, patch: Partial<ReelSlide>) {
     setSlides(prev => prev.map((s, i) => (i === idx ? { ...s, ...patch } : s)))
@@ -113,16 +177,22 @@ export default function ReelCreator() {
   }
 
   const initSvc = useCallback(() => {
-    if (!offscreenRef.current || !previewRef.current || slides.length === 0) return null
+    if (!offscreenRef.current || slides.length === 0) return null
     svcRef.current?.stop()
-    const svc = new LegadoReelService(offscreenRef.current, slides, theme)
+    const svc = new LegadoReelService(
+      offscreenRef.current,
+      slides,
+      theme,
+      selectedTrack?.audioUrl,
+    )
     svcRef.current = svc
     return svc
-  }, [slides, theme])
+  }, [slides, theme, selectedTrack])
 
-  function startPreview() {
+  async function startPreview() {
     const svc = initSvc()
     if (!svc || !previewRef.current) return
+    await svc.preload()
     svc.startPreview(previewRef.current)
     setPreviewing(true)
   }
@@ -137,18 +207,21 @@ export default function ReelCreator() {
     setVideoBlob(null)
     setProgress(0)
     svcRef.current = null
-    // Start preview after canvas mounts
     setTimeout(() => startPreview(), 80)
   }
 
-  function handleRecord() {
+  async function handleRecord() {
     stopPreview()
     setRecording(true)
     setProgress(0)
     setVideoBlob(null)
 
     const svc = initSvc()
-    if (!svc || !previewRef.current) { setRecording(false); return }
+    if (!svc || !previewRef.current) {
+      setRecording(false)
+      return
+    }
+    await svc.preload()
 
     svc.record(
       previewRef.current,
@@ -170,7 +243,6 @@ export default function ReelCreator() {
     URL.revokeObjectURL(url)
   }
 
-  // Clean up on unmount
   useEffect(() => () => { svcRef.current?.stop() }, [])
 
   const totalSecs = slides.reduce((s, sl) => s + (sl.duracion ?? 3), 0)
@@ -216,7 +288,7 @@ export default function ReelCreator() {
           </div>
         ))}
         <span style={{ fontSize: '0.8rem', color: '#6B3A1A', marginLeft: 8 }}>
-          {step === 1 ? 'Elegí productos' : step === 2 ? 'Revisá el guión' : 'Grabá el reel'}
+          {step === 1 ? 'Elegí productos' : step === 2 ? 'Guión y música' : 'Grabá el reel'}
         </span>
       </div>
 
@@ -276,6 +348,10 @@ export default function ReelCreator() {
                       checked={selectedIds.includes(p.id)}
                       className="accent-amber-700 pointer-events-none"
                     />
+                    {p.imagen && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={p.imagen} alt="" className="w-9 h-9 object-cover rounded-sm flex-shrink-0" />
+                    )}
                     <span style={{ flex: 1, fontSize: '0.875rem', color: '#3D1A05' }}>
                       {p.nombre}
                     </span>
@@ -329,13 +405,14 @@ export default function ReelCreator() {
         </div>
       )}
 
-      {/* ── STEP 2: editar guión ── */}
+      {/* ── STEP 2: guión + música ── */}
       {step === 2 && (
         <div className="space-y-4">
           <p style={{ fontSize: '0.85rem', color: '#6B3A1A' }}>
-            Revisá y editá el guión. Cada bloque es una diapositiva animada.
+            Revisá el guión. Las imágenes de los productos se muestran automáticamente en cada slide.
           </p>
 
+          {/* Slides */}
           <div className="space-y-3">
             {slides.map((slide, idx) => (
               <div
@@ -343,8 +420,17 @@ export default function ReelCreator() {
                 className="p-3 rounded-sm"
                 style={{ backgroundColor: '#FDF8EE', border: '1px solid #DDD0A8' }}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold" style={{ color: '#A0622A' }}>
+                <div className="flex items-center gap-3 mb-2">
+                  {slide.imagen && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={slide.imagen}
+                      alt=""
+                      className="w-10 h-10 object-cover rounded-sm flex-shrink-0"
+                      style={{ border: '1px solid #DDD0A8' }}
+                    />
+                  )}
+                  <span className="text-xs font-bold flex-1" style={{ color: '#A0622A' }}>
                     Slide {idx + 1}
                   </span>
                   <button
@@ -380,6 +466,77 @@ export default function ReelCreator() {
             Agregar slide
           </button>
 
+          {/* Música */}
+          <div className="pt-2" style={{ borderTop: '1px solid #DDD0A8' }}>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-semibold" style={{ color: '#6B3A1A' }}>
+                🎵 Música de fondo (Jamendo — CC libre)
+              </label>
+              <button
+                onClick={cargarMusica}
+                disabled={loadingMusic}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs font-semibold disabled:opacity-50 hover:opacity-80"
+                style={{ backgroundColor: '#3D1A05', color: '#F2E6C8' }}
+              >
+                {loadingMusic ? <Loader2 size={11} className="animate-spin" /> : <Music size={11} />}
+                {loadingMusic ? 'Cargando...' : tracks.length ? 'Recargar' : 'Buscar música'}
+              </button>
+            </div>
+
+            {tracks.length > 0 && (
+              <div
+                className="space-y-1 rounded-sm overflow-hidden"
+                style={{ border: '1px solid #DDD0A8', maxHeight: 240, overflowY: 'auto' }}
+              >
+                {/* Sin música */}
+                <div
+                  className="flex items-center gap-3 px-3 py-2 cursor-pointer"
+                  style={{
+                    backgroundColor: !selectedTrack ? '#F2E6C8' : '#FDF8EE',
+                    borderBottom: '1px solid #EEE0C0',
+                  }}
+                  onClick={() => setSelectedTrack(null)}
+                >
+                  <input type="radio" readOnly checked={!selectedTrack} className="accent-amber-700 pointer-events-none" />
+                  <span style={{ fontSize: '0.85rem', color: '#6B3A1A' }}>🔇 Sin música (solo ambience)</span>
+                </div>
+
+                {tracks.map(track => (
+                  <div
+                    key={track.id}
+                    className="flex items-center gap-3 px-3 py-2 cursor-pointer"
+                    style={{
+                      backgroundColor: selectedTrack?.id === track.id ? '#F2E6C8' : '#FDF8EE',
+                      borderBottom: '1px solid #EEE0C0',
+                    }}
+                    onClick={() => setSelectedTrack(track)}
+                  >
+                    <input type="radio" readOnly checked={selectedTrack?.id === track.id} className="accent-amber-700 pointer-events-none" />
+                    <div className="flex-1 min-w-0">
+                      <p style={{ fontSize: '0.82rem', color: '#3D1A05', fontWeight: 500 }} className="truncate">
+                        {track.nombre}
+                      </p>
+                      <p style={{ fontSize: '0.72rem', color: '#A0622A' }}>{track.artista} · {Math.round(track.duracion / 60)}:{String(track.duracion % 60).padStart(2, '0')}</p>
+                    </div>
+                    <button
+                      onClick={e => { e.stopPropagation(); previewTrack(track) }}
+                      className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center hover:opacity-80"
+                      style={{ backgroundColor: '#DDD0A8', color: '#3D1A05' }}
+                    >
+                      {previewingTrack === track.id ? <Square size={10} /> : <Play size={10} />}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {selectedTrack && (
+              <p className="text-xs mt-1" style={{ color: '#4A5E1A' }}>
+                ✓ Seleccionada: <strong>{selectedTrack.nombre}</strong> — {selectedTrack.artista}
+              </p>
+            )}
+          </div>
+
           <div className="flex gap-2 pt-1">
             <button
               onClick={() => setStep(1)}
@@ -405,10 +562,8 @@ export default function ReelCreator() {
       {/* ── STEP 3: preview + record ── */}
       {step === 3 && (
         <div className="flex flex-col sm:flex-row gap-5">
-          {/* Canvas offscreen (hidden) */}
           <canvas ref={offscreenRef} style={{ display: 'none' }} />
 
-          {/* Preview */}
           <div className="flex-shrink-0 mx-auto sm:mx-0" style={{ width: 195 }}>
             <canvas
               ref={previewRef}
@@ -425,10 +580,12 @@ export default function ReelCreator() {
             />
           </div>
 
-          {/* Controls */}
           <div className="flex-1 space-y-3 min-w-0">
             <div style={{ fontSize: '0.85rem', color: '#6B3A1A' }}>
               <strong>{slides.length} slides</strong> · {totalSecs}s en total
+              {selectedTrack && (
+                <span style={{ color: '#4A5E1A', marginLeft: 8 }}>· 🎵 {selectedTrack.nombre}</span>
+              )}
             </div>
 
             {recording && (
@@ -523,8 +680,7 @@ export default function ReelCreator() {
               className="text-xs p-2 rounded-sm"
               style={{ backgroundColor: '#F2E6C8', color: '#6B3A1A', border: '1px solid #DDD0A8' }}
             >
-              El video se guarda como .webm (compatible con WhatsApp, Instagram y la mayoría de
-              los reproductores). Para convertir a .mp4 podés usar{' '}
+              El video se guarda como .webm. Para convertir a .mp4 usá{' '}
               <strong>cloudconvert.com</strong>.
             </div>
           </div>
