@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { adminDb } from '@/lib/firebase/admin'
 import ProductoClient from './ProductoClient'
+import type { Producto } from '@/types'
 
 const APP_URL = 'https://legadobyd.com'
 
@@ -44,5 +45,12 @@ export default async function ProductoPage(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params
-  return <ProductoClient id={id} />
+  let initialProducto = null
+  try {
+    const snap = await adminDb().collection('productos').doc(id).get()
+    if (snap.exists) {
+      initialProducto = { id: snap.id, ...snap.data() } as Producto
+    }
+  } catch {}
+  return <ProductoClient id={id} initialProducto={initialProducto} />
 }

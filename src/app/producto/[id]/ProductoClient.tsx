@@ -17,14 +17,15 @@ const categoriaLabel: Record<string, string> = {
   decoracion: '✨ Decoración',
 }
 
-export default function ProductoClient({ id }: { id: string }) {
+export default function ProductoClient({ id, initialProducto }: { id: string; initialProducto?: Producto | null }) {
   const router = useRouter()
   const { addItem, setOpen } = useCart()
-  const [producto, setProducto] = useState<Producto | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [producto, setProducto] = useState<Producto | null>(initialProducto ?? null)
+  const [loading, setLoading] = useState(!initialProducto)
   const [imgIndex, setImgIndex] = useState(0)
 
   useEffect(() => {
+    if (initialProducto) return
     getProducto(id).then(p => { setProducto(p); setLoading(false) })
   }, [id])
 
