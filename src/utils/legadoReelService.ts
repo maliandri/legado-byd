@@ -178,12 +178,13 @@ export class LegadoReelService {
     ctx.save()
     ctx.drawImage(img, dX, dY, dW, dH)
 
-    // Gradient overlay: dark top + dark bottom
+    // Gradient overlay: dark only at top (logo) and bottom (CTA), imagen visible al centro
     const overlay = ctx.createLinearGradient(0, 0, 0, HEIGHT)
-    overlay.addColorStop(0, `rgba(${r},${g},${b},0.88)`)
-    overlay.addColorStop(0.22, `rgba(${r},${g},${b},0.28)`)
-    overlay.addColorStop(0.6, `rgba(${r},${g},${b},0.28)`)
-    overlay.addColorStop(1, `rgba(${r},${g},${b},0.92)`)
+    overlay.addColorStop(0, `rgba(${r},${g},${b},0.72)`)
+    overlay.addColorStop(0.18, `rgba(${r},${g},${b},0.10)`)
+    overlay.addColorStop(0.55, `rgba(${r},${g},${b},0.05)`)
+    overlay.addColorStop(0.75, `rgba(${r},${g},${b},0.45)`)
+    overlay.addColorStop(1, `rgba(${r},${g},${b},0.80)`)
     ctx.fillStyle = overlay
     ctx.fillRect(0, 0, WIDTH, HEIGHT)
     ctx.restore()
@@ -260,22 +261,38 @@ export class LegadoReelService {
     const { ctx } = this
     ctx.globalAlpha = alpha
 
-    const barH = 180
-    const barY = HEIGHT - barH - 30
-    ctx.fillStyle = this.theme.accent + 'DD'
+    const barH = 210
+    const barY = HEIGHT - barH - 40
+
+    // Fondo sólido dorado con borde
+    ctx.fillStyle = this.theme.accent
     ctx.beginPath()
-    ctx.roundRect(60, barY, WIDTH - 120, barH, 12)
+    ctx.roundRect(40, barY, WIDTH - 80, barH, 16)
     ctx.fill()
 
-    ctx.fillStyle = this.theme.bg
-    ctx.font = `bold 58px Arial, sans-serif`
+    // Borde interior oscuro para contraste
+    ctx.strokeStyle = this.theme.bg
+    ctx.lineWidth = 4
+    ctx.beginPath()
+    ctx.roundRect(48, barY + 8, WIDTH - 96, barH - 16, 10)
+    ctx.stroke()
+
+    // Texto principal: blanco con sombra para máxima visibilidad
+    ctx.shadowColor = 'rgba(0,0,0,0.6)'
+    ctx.shadowBlur = 8
+    ctx.fillStyle = '#FFFFFF'
+    ctx.font = `bold 68px Georgia, serif`
     ctx.textAlign = 'center'
-    ctx.fillText('legadobyd.com', WIDTH / 2, barY + barH / 2 + 12)
+    ctx.fillText('legadobyd.com', WIDTH / 2, barY + 90)
 
-    ctx.font = `36px Arial, sans-serif`
-    ctx.fillStyle = this.theme.bg + 'CC'
-    ctx.fillText('Neuquén, Argentina', WIDTH / 2, barY + barH / 2 + 58)
+    // Subtexto oscuro
+    ctx.shadowBlur = 4
+    ctx.font = `bold 38px Arial, sans-serif`
+    ctx.fillStyle = this.theme.bg
+    ctx.fillText('Neuquén · Argentina', WIDTH / 2, barY + 152)
 
+    ctx.shadowBlur = 0
+    ctx.shadowColor = 'transparent'
     ctx.globalAlpha = 1
   }
 
@@ -286,7 +303,7 @@ export class LegadoReelService {
     if (slide?.imagen) this.drawProductImage(slide, t)
     this.drawLogo(Math.min(1, t * 2))
     if (slide) this.drawSlide(slide, t)
-    this.drawCTA(Math.max(0, (t - 0.65) * 3))
+    this.drawCTA(Math.max(0, (t - 0.4) * 2.5))
 
     // Fade in from black
     if (t < 0.1) {
