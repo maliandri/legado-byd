@@ -14,11 +14,12 @@ function sign(params: Record<string, string>): string {
 
 export async function uploadToCloudinary(
   buffer: Buffer,
-  filename: string
-): Promise<{ url: string; public_id: string }> {
+  filename: string,
+  resourceType: 'image' | 'video' = 'image'
+): Promise<{ url: string; secure_url: string; public_id: string }> {
   const timestamp = String(Math.floor(Date.now() / 1000))
-  const folder = 'legado-productos'
-  const public_id = filename.replace(/\.[^/.]+$/, '')
+  const folder = resourceType === 'video' ? 'legado-reels' : 'legado-productos'
+  const public_id = filename.replace(/\.[^/.]+$/, '').replace(/\s+/g, '-')
 
   const signature = sign({ folder, public_id, timestamp })
 
@@ -31,12 +32,12 @@ export async function uploadToCloudinary(
   fd.append('public_id', public_id)
 
   const res = await fetch(
-    `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+    `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/${resourceType}/upload`,
     { method: 'POST', body: fd }
   )
 
   const data = await res.json()
   if (!res.ok) throw new Error(data.error?.message || `Cloudinary ${res.status}`)
 
-  return { url: data.secure_url, public_id: data.public_id }
+  return { url: data.secure_url, secure_url: data.secure_url, public_id: data.public_id }
 }

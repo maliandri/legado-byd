@@ -11,7 +11,8 @@ export async function POST(req: NextRequest) {
     if (!file) return NextResponse.json({ error: 'No file' }, { status: 400 })
 
     const buffer = Buffer.from(await file.arrayBuffer())
-    const result = await uploadToCloudinary(buffer, file.name)
+    const resourceType = file.type.startsWith('video/') ? 'video' : 'image'
+    const result = await uploadToCloudinary(buffer, file.name, resourceType)
     return NextResponse.json(result)
   } catch (err: any) {
     console.error('Cloudinary upload error:', err)

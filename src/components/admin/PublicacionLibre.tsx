@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { Upload, X, Sparkles, Copy, MessageCircle, RefreshCw, Search, Package, Loader2, Instagram, CheckCircle2, AlertCircle } from 'lucide-react'
+import { Upload, X, Sparkles, Copy, MessageCircle, RefreshCw, Search, Package, Loader2, Instagram, CheckCircle2, AlertCircle, Video, Image as ImageIcon } from 'lucide-react'
 
 interface ImageItem {
   file?: File
@@ -25,6 +25,10 @@ export default function PublicacionLibre() {
   const [uploading, setUploading] = useState(false)
   const [igStatus, setIgStatus] = useState<'idle' | 'uploading' | 'sending' | 'ok' | 'error'>('idle')
   const [msg, setMsg] = useState('')
+  const [modo, setModo] = useState<'foto' | 'reel'>('foto')
+  const [video, setVideo] = useState<{ file: File; preview: string; cloudUrl?: string } | null>(null)
+  const [reelStatus, setReelStatus] = useState<'idle' | 'uploading' | 'sending' | 'ok' | 'error'>('idle')
+  const videoInputRef = useRef<HTMLInputElement>(null)
 
   // Buscador de productos
   const [query, setQuery] = useState('')
@@ -215,6 +219,46 @@ export default function PublicacionLibre() {
     }
   }
 
+  function handleVideo(files: FileList | null) {
+    const f = files?.[0]
+    if (!f) return
+    if (!f.type.startsWith('video/')) { flash('Solo se admiten archivos de video', true); return }
+    if (video?.preview) URL.revokeObjectURL(video.preview)
+    setVideo({ file: f, preview: URL.createObjectURL(f) })
+  }
+
+  async function handlePublicarReel() {
+    if (!caption) { flash('Escribí o generá un caption primero', true); return }
+    if (!video) { flash('Seleccioná un video primero', true); return }
+    setReelStatus('uploading')
+    try {
+      let videoUrl = video.cloudUrl
+      if (!videoUrl) {
+        const fd = new FormData()
+        fd.append('file', video.file)
+        const upRes = await fetch('/api/upload', { method: 'POST', body: fd })
+        const upData = await upRes.json()
+        if (!upRes.ok) throw new Error(upData.error || 'Error al subir video')
+        videoUrl = upData.secure_url || upData.url
+        setVideo(v => v ? { ...v, cloudUrl: videoUrl } : v)
+      }
+      setReelStatus('sending')
+      const res = await fetch('/api/instagram/publicar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ caption, videoUrl, type: 'reel' }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Error')
+      setReelStatus('ok')
+      setTimeout(() => setReelStatus('idle'), 4000)
+    } catch (err: any) {
+      flash(`Error: ${err.message}`, true)
+      setReelStatus('error')
+      setTimeout(() => setReelStatus('idle'), 4000)
+    }
+  }
+
   function flash(text: string, error = false) {
     setMsg(error ? `error:${text}` : text)
     setTimeout(() => setMsg(''), 4000)
@@ -226,12 +270,30 @@ export default function PublicacionLibre() {
   return (
     <div className="max-w-2xl mx-auto space-y-5">
       <div>
-        <h2 style={{ fontFamily: "'Playfair Display', serif", color: '#3D1A05', fontSize: '1.3rem', fontWeight: 700, marginBottom: 4 }}>
+        <h2 style={{ fontFamily: "'Playfair Display', serif", color: '#3D1A05', fontSize: '1.3rem', fontWeight: 700, marginBottom: 8 }}>
           Publicación Libre
         </h2>
-        <p style={{ color: '#6B3A1A', fontSize: '0.85rem' }}>
-          Buscá un producto o subí imágenes y generá un caption con IA para compartir en redes.
-        </p>
+        {/* Toggle Foto / Reel */}
+        <div className="flex gap-1 p-1 rounded-sm" style={{ backgroundColor: '#F2E6C8', border: '1px solid #DDD0A8', width: 'fit-content' }}>
+          <button
+            onClick={() => setModo('foto')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-sm font-semibold transition-all"
+            style={modo === 'foto'
+              ? { backgroundColor: '#3D1A05', color: '#F2E6C8' }
+              : { backgroundColor: 'transparent', color: '#6B3A1A' }}
+          >
+            <ImageIcon size={14} /> Foto
+          </button>
+          <button
+            onClick={() => setModo('reel')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-sm font-semibold transition-all"
+            style={modo === 'reel'
+              ? { backgroundColor: '#3D1A05', color: '#F2E6C8' }
+              : { backgroundColor: 'transparent', color: '#6B3A1A' }}
+          >
+            <Video size={14} /> Reel
+          </button>
+        </div>
       </div>
 
       {msg && (
@@ -241,8 +303,63 @@ export default function PublicacionLibre() {
         </div>
       )}
 
+      {/* Sección video — solo en modo reel */}
+      {modo === 'reel' && (
+        <div>
+          <label className="block text-xs font-semibold mb-1" style={{ color: '#6B3A1A' }}>
+            Video del reel
+          </label>
+          {video ? (
+            <div className="relative rounded-sm overflow-hidden" style={{ backgroundColor: '#1a1a1a' }}>
+              <video src={video.preview} controls className="w-full" style={{ maxHeight: 300 }} />
+              <div className="absolute top-2 right-2 flex gap-1">
+                {video.cloudUrl && (
+                  <span className="text-xs px-2 py-0.5 rounded-sm"
+                    style={{ backgroundColor: 'rgba(74,94,26,0.9)', color: 'white' }}>
+                    ✓ Subido
+                  </span>
+                )}
+                <button
+                  onClick={() => { URL.revokeObjectURL(video.preview); setVideo(null) }}
+                  className="rounded-full p-1"
+                  style={{ backgroundColor: 'rgba(61,26,5,0.8)', color: 'white' }}>
+                  <X size={12} />
+                </button>
+              </div>
+              <div className="px-3 py-2" style={{ backgroundColor: '#F2E6C8' }}>
+                <p style={{ color: '#3D1A05', fontSize: '0.8rem', fontWeight: 600 }}>{video.file.name}</p>
+                <p style={{ color: '#A0622A', fontSize: '0.72rem' }}>
+                  {(video.file.size / (1024 * 1024)).toFixed(1)} MB
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div
+              className="border-2 border-dashed rounded-sm p-8 text-center cursor-pointer"
+              style={{ borderColor: '#C4A040', backgroundColor: '#FDF8EE' }}
+              onDrop={e => { e.preventDefault(); handleVideo(e.dataTransfer.files) }}
+              onDragOver={e => e.preventDefault()}
+              onClick={() => videoInputRef.current?.click()}
+            >
+              <input
+                ref={videoInputRef}
+                type="file"
+                accept="video/*"
+                className="hidden"
+                onChange={e => handleVideo(e.target.files)}
+              />
+              <Video size={28} style={{ color: '#C4A040', margin: '0 auto 8px' }} />
+              <p style={{ color: '#6B3A1A', fontSize: '0.9rem' }}>Arrastrá o hacé click para agregar video</p>
+              <p style={{ color: '#A0622A', fontSize: '0.75rem', marginTop: 4 }}>
+                MP4, MOV — máximo 1 GB
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Buscador de productos */}
-      <div>
+      {modo === 'foto' && <div>
         <label className="block text-xs font-semibold mb-1" style={{ color: '#6B3A1A' }}>
           Buscar producto del catálogo (opcional)
         </label>
@@ -298,10 +415,10 @@ export default function PublicacionLibre() {
             )}
           </div>
         )}
-      </div>
+      </div>}
 
       {/* Dropzone */}
-      <div
+      {modo === 'foto' && <div
         className="border-2 border-dashed rounded-sm p-6 text-center cursor-pointer"
         style={{
           borderColor: '#C4A040',
@@ -329,10 +446,10 @@ export default function PublicacionLibre() {
         <p style={{ color: '#A0622A', fontSize: '0.75rem', marginTop: 4 }}>
           {images.length}/4 imágenes
         </p>
-      </div>
+      </div>}
 
       {/* Preview grid */}
-      {images.length > 0 && (
+      {modo === 'foto' && images.length > 0 && (
         <div className="grid gap-2"
           style={{ gridTemplateColumns: `repeat(${Math.min(images.length, 2)}, 1fr)` }}>
           {images.map((img, idx) => (
@@ -381,7 +498,7 @@ export default function PublicacionLibre() {
           <label className="text-xs font-semibold" style={{ color: '#6B3A1A' }}>Caption</label>
           <button
             onClick={handleGenerar}
-            disabled={generando || (images.length === 0 && !productoSeleccionado)}
+            disabled={generando || (modo === 'foto' && images.length === 0 && !productoSeleccionado)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs font-semibold disabled:opacity-50 hover:opacity-80 transition-opacity"
             style={{ backgroundColor: '#3D1A05', color: '#F2E6C8' }}
           >
@@ -408,35 +525,64 @@ export default function PublicacionLibre() {
           <Copy size={13} />
           Copiar texto
         </button>
-        <button
-          onClick={handleWhatsApp}
-          disabled={!caption || uploading}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-sm text-sm font-semibold disabled:opacity-40 hover:opacity-80 transition-opacity"
-          style={{ backgroundColor: '#25D366', color: 'white' }}
-        >
-          {uploading ? <RefreshCw size={13} className="animate-spin" /> : <MessageCircle size={13} />}
-          {uploading ? 'Preparando...' : 'Compartir por WhatsApp'}
-        </button>
-        <button
-          onClick={handlePublicarIG}
-          disabled={!caption || igStatus === 'uploading' || igStatus === 'sending'}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-sm text-sm font-semibold disabled:opacity-40 hover:opacity-80 transition-opacity"
-          style={{
-            backgroundColor: igStatus === 'ok' ? '#4A5E1A' : igStatus === 'error' ? '#c62828' : '#E1306C',
-            color: 'white',
-          }}
-        >
-          {igStatus === 'uploading' || igStatus === 'sending'
-            ? <RefreshCw size={13} className="animate-spin" />
-            : igStatus === 'ok' ? <CheckCircle2 size={13} />
-            : igStatus === 'error' ? <AlertCircle size={13} />
-            : <Instagram size={13} />}
-          {igStatus === 'uploading' ? 'Subiendo imagen...'
-            : igStatus === 'sending' ? 'Enviando...'
-            : igStatus === 'ok' ? '¡Enviado!'
-            : igStatus === 'error' ? 'Error'
-            : 'Publicar en Instagram'}
-        </button>
+
+        {modo === 'foto' && (
+          <button
+            onClick={handleWhatsApp}
+            disabled={!caption || uploading}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-sm text-sm font-semibold disabled:opacity-40 hover:opacity-80 transition-opacity"
+            style={{ backgroundColor: '#25D366', color: 'white' }}
+          >
+            {uploading ? <RefreshCw size={13} className="animate-spin" /> : <MessageCircle size={13} />}
+            {uploading ? 'Preparando...' : 'Compartir por WhatsApp'}
+          </button>
+        )}
+
+        {modo === 'foto' && (
+          <button
+            onClick={handlePublicarIG}
+            disabled={!caption || igStatus === 'uploading' || igStatus === 'sending'}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-sm text-sm font-semibold disabled:opacity-40 hover:opacity-80 transition-opacity"
+            style={{
+              backgroundColor: igStatus === 'ok' ? '#4A5E1A' : igStatus === 'error' ? '#c62828' : '#E1306C',
+              color: 'white',
+            }}
+          >
+            {igStatus === 'uploading' || igStatus === 'sending'
+              ? <RefreshCw size={13} className="animate-spin" />
+              : igStatus === 'ok' ? <CheckCircle2 size={13} />
+              : igStatus === 'error' ? <AlertCircle size={13} />
+              : <Instagram size={13} />}
+            {igStatus === 'uploading' ? 'Subiendo imagen...'
+              : igStatus === 'sending' ? 'Enviando...'
+              : igStatus === 'ok' ? '¡Enviado!'
+              : igStatus === 'error' ? 'Error'
+              : 'Publicar en Instagram'}
+          </button>
+        )}
+
+        {modo === 'reel' && (
+          <button
+            onClick={handlePublicarReel}
+            disabled={!caption || !video || reelStatus === 'uploading' || reelStatus === 'sending'}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-sm text-sm font-semibold disabled:opacity-40 hover:opacity-80 transition-opacity"
+            style={{
+              backgroundColor: reelStatus === 'ok' ? '#4A5E1A' : reelStatus === 'error' ? '#c62828' : '#E1306C',
+              color: 'white',
+            }}
+          >
+            {reelStatus === 'uploading' || reelStatus === 'sending'
+              ? <RefreshCw size={13} className="animate-spin" />
+              : reelStatus === 'ok' ? <CheckCircle2 size={13} />
+              : reelStatus === 'error' ? <AlertCircle size={13} />
+              : <Video size={13} />}
+            {reelStatus === 'uploading' ? 'Subiendo video...'
+              : reelStatus === 'sending' ? 'Enviando a Make...'
+              : reelStatus === 'ok' ? '¡Reel enviado!'
+              : reelStatus === 'error' ? 'Error'
+              : 'Publicar Reel'}
+          </button>
+        )}
       </div>
     </div>
   )
