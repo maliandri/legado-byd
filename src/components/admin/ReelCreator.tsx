@@ -241,14 +241,26 @@ export default function ReelCreator() {
     if (!videoBlob) return
     setIgStatus('uploading')
     try {
+      // Subir directo a Cloudinary desde el browser (evita límite 6MB de Netlify)
+      const signRes = await fetch('/api/cloudinary-sign?type=video')
+      const { signature, timestamp, apiKey, cloudName, folder } = await signRes.json()
+
       const fd = new FormData()
       fd.append('file', new File([videoBlob], `reel-${Date.now()}.webm`, { type: videoBlob.type }))
-      const upRes = await fetch('/api/upload', { method: 'POST', body: fd })
+      fd.append('api_key', apiKey)
+      fd.append('timestamp', timestamp)
+      fd.append('signature', signature)
+      fd.append('folder', folder)
+
+      const upRes = await fetch(
+        `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`,
+        { method: 'POST', body: fd },
+      )
       const upText = await upRes.text()
       let upData: any
-      try { upData = JSON.parse(upText) } catch { throw new Error(`Upload falló (${upRes.status}): ${upText.slice(0, 80)}`) }
-      if (!upRes.ok) throw new Error(upData.error || `Upload error ${upRes.status}`)
-      const videoUrl = upData.secure_url || upData.url
+      try { upData = JSON.parse(upText) } catch { throw new Error(`Cloudinary error: ${upText.slice(0, 120)}`) }
+      if (!upRes.ok) throw new Error(upData.error?.message || `Cloudinary ${upRes.status}`)
+      const videoUrl = upData.secure_url
 
       setIgStatus('sending')
       const caption = slides.map(s => s.titulo).join(' · ') + '\n\n#legadobyd #panaderia #pasteleria #neuquen'
