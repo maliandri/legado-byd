@@ -390,7 +390,7 @@ function EmailModal({ user, onClose, onSent }: { user: SelectedUser; onClose: ()
       const res = await fetch('/api/admin/enviar-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to: user.email, nombre: user.nombre, asunto, cuerpo }),
+        body: JSON.stringify({ email: user.email, nombre: user.nombre, asunto, cuerpo }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Error al enviar')
