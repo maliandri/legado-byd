@@ -244,8 +244,10 @@ export default function ReelCreator() {
       const fd = new FormData()
       fd.append('file', new File([videoBlob], `reel-${Date.now()}.webm`, { type: videoBlob.type }))
       const upRes = await fetch('/api/upload', { method: 'POST', body: fd })
-      const upData = await upRes.json()
-      if (!upRes.ok) throw new Error(upData.error || 'Error al subir video')
+      const upText = await upRes.text()
+      let upData: any
+      try { upData = JSON.parse(upText) } catch { throw new Error(`Upload falló (${upRes.status}): ${upText.slice(0, 80)}`) }
+      if (!upRes.ok) throw new Error(upData.error || `Upload error ${upRes.status}`)
       const videoUrl = upData.secure_url || upData.url
 
       setIgStatus('sending')
@@ -255,7 +257,9 @@ export default function ReelCreator() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ caption, videoUrl, type: 'reel' }),
       })
-      const data = await res.json()
+      const text = await res.text()
+      let data: any
+      try { data = JSON.parse(text) } catch { throw new Error(`Respuesta inesperada (${res.status}): ${text.slice(0, 80)}`) }
       if (!res.ok) throw new Error(data.error || 'Error')
       setIgStatus('ok')
       setTimeout(() => setIgStatus('idle'), 5000)
