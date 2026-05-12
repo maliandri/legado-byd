@@ -80,8 +80,16 @@ export class LegadoReelService {
   private initAudio(): void {
     try {
       this.audioCtx = new AudioContext()
+      // Resume in case browser auto-suspended it
+      this.audioCtx.resume().catch(() => {})
+
       const dest = this.audioCtx.createMediaStreamDestination()
       this.audioDestStream = dest.stream
+
+      const master = this.audioCtx.createGain()
+      master.gain.value = 1.0
+      master.connect(this.audioCtx.destination) // speakers
+      master.connect(dest)                       // grabacion
 
       if (this.audioUrl) {
         this.audioEl = new Audio(this.audioUrl)
@@ -89,24 +97,18 @@ export class LegadoReelService {
         this.audioEl.loop = true
         const src = this.audioCtx.createMediaElementSource(this.audioEl)
         const gain = this.audioCtx.createGain()
-        gain.gain.value = 0.6
+        gain.gain.value = 0.65
         src.connect(gain)
-        gain.connect(this.audioCtx.destination)
-        gain.connect(dest)
+        gain.connect(master)
         this.audioEl.play().catch(() => {})
       } else {
-        // Soft A-major ambient pad — connect to BOTH speakers and recording stream
-        const master = this.audioCtx.createGain()
-        master.gain.value = 0.8
-        master.connect(this.audioCtx.destination)
-        master.connect(dest)
-
+        // A-major ambient pad sintetizado
         const notes = [
-          { f: 110, g: 0.08 },
-          { f: 220, g: 0.10 },
-          { f: 277.18, g: 0.07 },
-          { f: 329.63, g: 0.08 },
-          { f: 440, g: 0.06 },
+          { f: 110, g: 0.10 },
+          { f: 220, g: 0.12 },
+          { f: 277.18, g: 0.09 },
+          { f: 329.63, g: 0.10 },
+          { f: 440, g: 0.08 },
         ]
         notes.forEach(({ f, g }) => {
           const osc = this.audioCtx!.createOscillator()
@@ -120,7 +122,7 @@ export class LegadoReelService {
         })
       }
     } catch {
-      // Audio not available
+      // Audio no disponible en este entorno
     }
   }
 
@@ -368,10 +370,14 @@ export class LegadoReelService {
     if (this.audioDestStream) tracks.push(...this.audioDestStream.getAudioTracks())
     const stream = new MediaStream(tracks)
 
+    // Incluir codec de audio (opus) para que MediaRecorder capture el audio
     const mimeType =
-      ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'].find(t =>
-        MediaRecorder.isTypeSupported(t),
-      ) ?? 'video/webm'
+      [
+        'video/webm;codecs=vp9,opus',
+        'video/webm;codecs=vp8,opus',
+        'video/webm;codecs=h264,opus',
+        'video/webm',
+      ].find(t => MediaRecorder.isTypeSupported(t)) ?? 'video/webm'
 
     this.recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 4_000_000 })
     this.recorder.ondataavailable = e => { if (e.data.size > 0) this.chunks.push(e.data) }
