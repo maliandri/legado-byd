@@ -14,6 +14,9 @@ import {
   Trash2,
   Music,
   Loader2,
+  Instagram,
+  CheckCircle2,
+  AlertCircle,
 } from 'lucide-react'
 import { getProductos } from '@/lib/firebase/firestore'
 import type { Producto } from '@/types'
@@ -61,6 +64,7 @@ export default function ReelCreator() {
   const [videoBlob, setVideoBlob] = useState<Blob | null>(null)
   const [previewing, setPreviewing] = useState(false)
   const [msg, setMsg] = useState('')
+  const [igStatus, setIgStatus] = useState<'idle' | 'uploading' | 'sending' | 'ok' | 'error'>('idle')
 
   // Music
   const [tracks, setTracks] = useState<Track[]>([])
@@ -231,6 +235,35 @@ export default function ReelCreator() {
         setRecording(false)
       },
     )
+  }
+
+  async function handlePublicarIG() {
+    if (!videoBlob) return
+    setIgStatus('uploading')
+    try {
+      const fd = new FormData()
+      fd.append('file', new File([videoBlob], `reel-${Date.now()}.webm`, { type: videoBlob.type }))
+      const upRes = await fetch('/api/upload', { method: 'POST', body: fd })
+      const upData = await upRes.json()
+      if (!upRes.ok) throw new Error(upData.error || 'Error al subir video')
+      const videoUrl = upData.secure_url || upData.url
+
+      setIgStatus('sending')
+      const caption = slides.map(s => s.titulo).join(' · ') + '\n\n#legadobyd #panaderia #pasteleria #neuquen'
+      const res = await fetch('/api/instagram/publicar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ caption, videoUrl, type: 'reel' }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Error')
+      setIgStatus('ok')
+      setTimeout(() => setIgStatus('idle'), 5000)
+    } catch (err: any) {
+      flash(`Error: ${err.message}`)
+      setIgStatus('error')
+      setTimeout(() => setIgStatus('idle'), 4000)
+    }
   }
 
   function handleDownload() {
@@ -652,11 +685,27 @@ export default function ReelCreator() {
                     Descargar .webm
                   </button>
                   <button
-                    onClick={() => {
-                      setVideoBlob(null)
-                      setProgress(0)
-                      startPreview()
+                    onClick={handlePublicarIG}
+                    disabled={igStatus === 'uploading' || igStatus === 'sending'}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-sm text-sm font-semibold disabled:opacity-50 hover:opacity-80 transition-opacity"
+                    style={{
+                      backgroundColor: igStatus === 'ok' ? '#4A5E1A' : igStatus === 'error' ? '#c62828' : '#E1306C',
+                      color: 'white',
                     }}
+                  >
+                    {igStatus === 'uploading' || igStatus === 'sending'
+                      ? <RefreshCw size={13} className="animate-spin" />
+                      : igStatus === 'ok' ? <CheckCircle2 size={13} />
+                      : igStatus === 'error' ? <AlertCircle size={13} />
+                      : <Instagram size={13} />}
+                    {igStatus === 'uploading' ? 'Subiendo...'
+                      : igStatus === 'sending' ? 'Enviando a Make...'
+                      : igStatus === 'ok' ? '¡Enviado!'
+                      : igStatus === 'error' ? 'Error'
+                      : 'Publicar en Instagram'}
+                  </button>
+                  <button
+                    onClick={() => { setVideoBlob(null); setProgress(0); startPreview() }}
                     className="flex items-center gap-1.5 px-3 py-2 rounded-sm text-sm"
                     style={{ border: '1px solid #DDD0A8', color: '#6B3A1A' }}
                   >

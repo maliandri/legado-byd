@@ -43,6 +43,7 @@ export class LegadoReelService {
   private images: Map<string, HTMLImageElement> = new Map()
   private audioCtx: AudioContext | null = null
   private audioEl: HTMLAudioElement | null = null
+  private audioDestStream: MediaStream | null = null
   private audioUrl: string | null
 
   constructor(
@@ -68,10 +69,7 @@ export class LegadoReelService {
           new Promise<void>(resolve => {
             const img = new Image()
             img.crossOrigin = 'anonymous'
-            img.onload = () => {
-              this.images.set(url, img)
-              resolve()
-            }
+            img.onload = () => { this.images.set(url, img); resolve() }
             img.onerror = () => resolve()
             img.src = url
           }),
@@ -79,10 +77,11 @@ export class LegadoReelService {
     )
   }
 
-  private createAudio(): MediaStream | null {
+  private initAudio(): void {
     try {
       this.audioCtx = new AudioContext()
       const dest = this.audioCtx.createMediaStreamDestination()
+      this.audioDestStream = dest.stream
 
       if (this.audioUrl) {
         this.audioEl = new Audio(this.audioUrl)
@@ -90,18 +89,24 @@ export class LegadoReelService {
         this.audioEl.loop = true
         const src = this.audioCtx.createMediaElementSource(this.audioEl)
         const gain = this.audioCtx.createGain()
-        gain.gain.value = 0.55
+        gain.gain.value = 0.6
         src.connect(gain)
+        gain.connect(this.audioCtx.destination)
         gain.connect(dest)
         this.audioEl.play().catch(() => {})
       } else {
-        // Soft ambient A-major pad (synthesized)
+        // Soft A-major ambient pad — connect to BOTH speakers and recording stream
+        const master = this.audioCtx.createGain()
+        master.gain.value = 0.8
+        master.connect(this.audioCtx.destination)
+        master.connect(dest)
+
         const notes = [
-          { f: 110, g: 0.025 },
-          { f: 220, g: 0.03 },
-          { f: 277.18, g: 0.02 },
-          { f: 329.63, g: 0.025 },
-          { f: 440, g: 0.018 },
+          { f: 110, g: 0.08 },
+          { f: 220, g: 0.10 },
+          { f: 277.18, g: 0.07 },
+          { f: 329.63, g: 0.08 },
+          { f: 440, g: 0.06 },
         ]
         notes.forEach(({ f, g }) => {
           const osc = this.audioCtx!.createOscillator()
@@ -110,14 +115,27 @@ export class LegadoReelService {
           osc.frequency.value = f
           gain.gain.value = g
           osc.connect(gain)
-          gain.connect(dest)
+          gain.connect(master)
           osc.start()
         })
       }
-
-      return dest.stream
     } catch {
-      return null
+      // Audio not available
+    }
+  }
+
+  private cleanupAudio(): void {
+    this.audioEl?.pause()
+    this.audioEl = null
+    this.audioCtx?.close().catch(() => {})
+    this.audioCtx = null
+    this.audioDestStream = null
+  }
+
+  private stopAnimation(): void {
+    if (this.animFrame) {
+      cancelAnimationFrame(this.animFrame)
+      this.animFrame = null
     }
   }
 
@@ -129,7 +147,6 @@ export class LegadoReelService {
     ctx.fillStyle = grad
     ctx.fillRect(0, 0, WIDTH, HEIGHT)
 
-    // Diagonal texture lines
     ctx.strokeStyle = this.theme.accent + '14'
     ctx.lineWidth = 1.5
     for (let i = -HEIGHT; i < WIDTH + HEIGHT; i += 80) {
@@ -148,7 +165,7 @@ export class LegadoReelService {
     const { ctx } = this
     const [r, g, b] = hexRgb(this.theme.bg)
 
-    // Ken Burns: slow zoom in
+    // Ken Burns: slow zoom in 1.0 → 1.06
     const scale = 1 + t * 0.06
     const sx = (WIDTH * scale) / img.width
     const sy = (HEIGHT * scale) / img.height
@@ -161,7 +178,7 @@ export class LegadoReelService {
     ctx.save()
     ctx.drawImage(img, dX, dY, dW, dH)
 
-    // Dark gradient overlay: readable logo at top + text at bottom
+    // Gradient overlay: dark top + dark bottom
     const overlay = ctx.createLinearGradient(0, 0, 0, HEIGHT)
     overlay.addColorStop(0, `rgba(${r},${g},${b},0.88)`)
     overlay.addColorStop(0.22, `rgba(${r},${g},${b},0.28)`)
@@ -169,7 +186,6 @@ export class LegadoReelService {
     overlay.addColorStop(1, `rgba(${r},${g},${b},0.92)`)
     ctx.fillStyle = overlay
     ctx.fillRect(0, 0, WIDTH, HEIGHT)
-
     ctx.restore()
   }
 
@@ -272,12 +288,12 @@ export class LegadoReelService {
     if (slide) this.drawSlide(slide, t)
     this.drawCTA(Math.max(0, (t - 0.65) * 3))
 
-    // Fade in from black (first 10% of slide)
+    // Fade in from black
     if (t < 0.1) {
       this.ctx.fillStyle = `rgba(0,0,0,${(1 - t / 0.1) * 0.85})`
       this.ctx.fillRect(0, 0, WIDTH, HEIGHT)
     }
-    // Fade to black (last 12% of slide)
+    // Fade to black
     if (t > 0.88) {
       this.ctx.fillStyle = `rgba(0,0,0,${((t - 0.88) / 0.12) * 0.85})`
       this.ctx.fillRect(0, 0, WIDTH, HEIGHT)
@@ -285,7 +301,10 @@ export class LegadoReelService {
   }
 
   startPreview(preview: HTMLCanvasElement) {
-    this.stop()
+    this.stopAnimation()
+    this.cleanupAudio()
+    this.initAudio() // audio plays through speakers during preview
+
     const pCtx = preview.getContext('2d')!
     const total = this.slides.length
     let slideIdx = 0
@@ -308,14 +327,8 @@ export class LegadoReelService {
   }
 
   stop() {
-    if (this.animFrame) {
-      cancelAnimationFrame(this.animFrame)
-      this.animFrame = null
-    }
-    this.audioEl?.pause()
-    this.audioCtx?.close().catch(() => {})
-    this.audioCtx = null
-    this.audioEl = null
+    this.stopAnimation()
+    this.cleanupAudio()
   }
 
   record(
@@ -323,7 +336,9 @@ export class LegadoReelService {
     onProgress: (pct: number) => void,
     onDone: (blob: Blob) => void,
   ) {
-    this.stop()
+    this.stopAnimation()
+    this.cleanupAudio()
+    this.initAudio() // fresh audio context for recording
     this.chunks = []
 
     const totalMs = this.slides.reduce(
@@ -332,9 +347,8 @@ export class LegadoReelService {
     )
 
     const canvasStream = this.offscreen.captureStream(FPS)
-    const audioStream = this.createAudio()
     const tracks = [...canvasStream.getTracks()]
-    if (audioStream) tracks.push(...audioStream.getAudioTracks())
+    if (this.audioDestStream) tracks.push(...this.audioDestStream.getAudioTracks())
     const stream = new MediaStream(tracks)
 
     const mimeType =
@@ -343,11 +357,9 @@ export class LegadoReelService {
       ) ?? 'video/webm'
 
     this.recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 4_000_000 })
-    this.recorder.ondataavailable = e => {
-      if (e.data.size > 0) this.chunks.push(e.data)
-    }
+    this.recorder.ondataavailable = e => { if (e.data.size > 0) this.chunks.push(e.data) }
     this.recorder.onstop = () => {
-      this.stop()
+      this.cleanupAudio()
       onDone(new Blob(this.chunks, { type: mimeType }))
     }
     this.recorder.start(100)
