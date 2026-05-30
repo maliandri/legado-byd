@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { X, Plus, Minus, Trash2, ShoppingCart, Loader2 } from 'lucide-react'
 import Image from 'next/image'
 import { useCart } from '@/context/CartContext'
@@ -36,6 +36,14 @@ export default function CartDrawer() {
   const { user, isCustomer, profile } = useAuth()
   const [loadingMP, setLoadingMP] = useState(false)
   const [mpError, setMpError] = useState('')
+
+  // Cuando el usuario vuelve del login con redirect=carrito, abre el carrito automáticamente
+  useEffect(() => {
+    if (sessionStorage.getItem('open-cart') === '1') {
+      sessionStorage.removeItem('open-cart')
+      setOpen(true)
+    }
+  }, [setOpen])
 
   async function handlePedirPorWhatsApp() {
     if (items.length === 0) return
@@ -98,6 +106,11 @@ export default function CartDrawer() {
 
   async function handlePagarConMP() {
     if (items.length === 0) return
+    if (!user) {
+      setOpen(false)
+      window.location.href = '/login?redirect=carrito'
+      return
+    }
     setLoadingMP(true)
     setMpError('')
     try {

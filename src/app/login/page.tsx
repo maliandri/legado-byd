@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import { useAuth } from '@/hooks/useAuth'
 
@@ -15,6 +15,8 @@ export default function LoginPage() {
   const { user, profile, isAdmin, isVendedor, loading, signInCustomer, redirectError,
           signInWithEmail, signUpWithEmail, resetPassword } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectParam = searchParams.get('redirect')
 
   const [tab, setTab] = useState<'google' | 'email'>('google')
   const [modo, setModo] = useState<'login' | 'registro' | 'reset'>('login')
@@ -30,8 +32,14 @@ export default function LoginPage() {
     if (loading || !user) return
     if (isAdmin) { router.replace('/admin'); return }
     if (isVendedor) { router.replace('/vendedor'); return }
+    if (redirectParam === 'carrito' && profile?.perfilCompleto) {
+      // Vuelven desde el carrito: abrir carrito automáticamente al llegar al home
+      sessionStorage.setItem('open-cart', '1')
+      router.replace('/')
+      return
+    }
     router.replace(profile?.perfilCompleto ? '/mi-cuenta' : '/registro')
-  }, [user, isAdmin, isVendedor, loading, profile, router])
+  }, [user, isAdmin, isVendedor, loading, profile, router, redirectParam])
 
   async function handleGoogle() {
     setError(''); setBusy(true)
@@ -96,6 +104,12 @@ export default function LoginPage() {
         </div>
 
         <div style={{ padding: '28px' }}>
+          {redirectParam === 'carrito' && (
+            <div style={{ backgroundColor: '#E8F4FD', border: '1px solid #009EE3', borderRadius: 6, padding: '10px 14px', fontSize: '0.85rem', color: '#006699', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <svg viewBox="0 0 24 24" fill="currentColor" width={16} height={16} style={{ flexShrink: 0 }}><path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96C5 16.1 6.9 18 9 18h12v-2H9.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63H19c.75 0 1.41-.41 1.75-1.03l3.58-6.49A1 1 0 0023.45 5H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/></svg>
+              Iniciá sesión para continuar con el pago por MercadoPago.
+            </div>
+          )}
           {error && (
             <div style={{ backgroundColor: '#F5CAAA', border: '1px solid #E8C49A', borderRadius: 6, padding: '10px 14px', fontSize: '0.85rem', color: '#6B3A1A', marginBottom: 16 }}>
               {error}
