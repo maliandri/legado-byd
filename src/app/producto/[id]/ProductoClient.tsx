@@ -8,6 +8,7 @@ import { getProducto } from '@/lib/firebase/firestore'
 import { useCart } from '@/context/CartContext'
 import type { Producto } from '@/types'
 import Navbar from '@/components/Navbar'
+import { CLD } from '@/lib/cloudinary/imgUrl'
 
 const whatsapp = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '5492994290637'
 
@@ -124,7 +125,8 @@ export default function ProductoClient({ id, initialProducto }: { id: string; in
             <div className="relative overflow-hidden rounded-sm"
               style={{ backgroundColor: '#F2E6C8', border: '1px solid #DDD0A8', aspectRatio: '1 / 1' }}>
               {imgActual ? (
-                <Image src={imgActual} alt={producto.nombre} fill
+                <Image src={CLD.detail(imgActual)} alt={producto.nombre} fill
+                  sizes="(max-width: 768px) 100vw, 50vw"
                   className="object-contain p-4" priority />
               ) : (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
@@ -165,7 +167,7 @@ export default function ProductoClient({ id, initialProducto }: { id: string; in
                     style={{ width: 64, height: 64,
                       border: i === imgIndex ? '2px solid #C4A040' : '2px solid #DDD0A8',
                       backgroundColor: '#F2E6C8' }}>
-                    <Image src={img} alt="" fill className="object-contain p-1" />
+                    <Image src={CLD.thumb(img)} alt="" fill sizes="64px" className="object-contain p-1" />
                   </button>
                 ))}
               </div>

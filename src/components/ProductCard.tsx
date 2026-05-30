@@ -8,6 +8,7 @@ import { useCart } from '@/context/CartContext'
 import { useAuth } from '@/hooks/useAuth'
 import { toggleFavorito } from '@/lib/firebase/usuarios'
 import { useState } from 'react'
+import { CLD } from '@/lib/cloudinary/imgUrl'
 
 const whatsapp = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '5492990000000'
 
@@ -68,9 +69,10 @@ export default function ProductCard({ producto }: Props) {
         <Link href={`/producto/${producto.id}`} className="absolute inset-0 z-0">
           {producto.imagen ? (
             <Image
-              src={producto.imagen}
+              src={CLD.thumb(producto.imagen)}
               alt={producto.nombre}
               fill
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 20vw"
               className="object-contain group-hover:scale-105 transition-transform duration-500 p-2"
             />
           ) : (

@@ -1,6 +1,5 @@
-'use client'
-
-import { useState, useEffect } from 'react'
+import type { Metadata } from 'next'
+import { adminDb } from '@/lib/firebase/admin'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import ProductGrid from '@/components/ProductGrid'
@@ -8,15 +7,51 @@ import WhatsAppButton from '@/components/WhatsAppButton'
 import WheatBackground from '@/components/WheatBackground'
 import NosotrosSection from '@/components/home/NosotrosSection'
 import LegadoSocialSection from '@/components/home/LegadoSocialSection'
-import { getCategorias } from '@/lib/firebase/firestore'
-import type { Categoria } from '@/types'
+import type { Categoria, Producto } from '@/types'
 
-export default function HomePage() {
-  const [categorias, setCategorias] = useState<Categoria[]>([])
+const APP_URL = 'https://legadobyd.com'
 
-  useEffect(() => {
-    getCategorias().then(cats => { if (cats.length) setCategorias(cats) }).catch(() => {})
-  }, [])
+export const metadata: Metadata = {
+  title: 'Legado Bazar y Deco — El almacén del panadero en Neuquén',
+  description:
+    'Insumos para panadería, pastelería y decoración en Neuquén, Argentina. Harina, levadura, colorantes, moldes y más. Comprá online o consultá por WhatsApp.',
+  alternates: { canonical: APP_URL },
+  openGraph: {
+    title: 'Legado Bazar y Deco — El almacén del panadero en Neuquén',
+    description:
+      'Insumos para panadería, pastelería y decoración en Neuquén. Harina, levadura, colorantes, moldes y más.',
+    url: APP_URL,
+    type: 'website',
+    locale: 'es_AR',
+    siteName: 'Legado Bazar y Deco',
+    images: [{ url: `${APP_URL}/legado.png`, width: 1200, height: 630, alt: 'Legado Bazar y Deco' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Legado Bazar y Deco — El almacén del panadero en Neuquén',
+    description: 'Insumos para panadería, pastelería y decoración en Neuquén, Argentina.',
+    images: [`${APP_URL}/legado.png`],
+  },
+}
+
+export default async function HomePage() {
+  let categorias: Categoria[] = []
+  let initialProductos: Producto[] = []
+
+  try {
+    const [catsSnap, prodsSnap] = await Promise.all([
+      adminDb().collection('categorias').get(),
+      adminDb().collection('productos').get(),
+    ])
+    categorias = catsSnap.docs.map(d => ({ id: d.id, ...d.data() } as Categoria))
+    initialProductos = prodsSnap.docs.map(d => {
+      const { createdAt: _c, updatedAt: _u, ...rest } = d.data()
+      return { id: d.id, ...rest } as Producto
+    })
+  } catch {}
+
+  const whatsapp = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '5492990000000'
+
   return (
     <>
       <Navbar />
@@ -89,7 +124,7 @@ export default function HomePage() {
                 Ver catálogo completo
               </a>
               <a
-                href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '5492990000000'}`}
+                href={`https://wa.me/${whatsapp}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="px-7 py-3.5 rounded-sm font-semibold text-sm transition-all hover:opacity-80"
@@ -147,7 +182,7 @@ export default function HomePage() {
               </div>
             </div>
 
-            <ProductGrid categorias={categorias} />
+            <ProductGrid categorias={categorias} initialProductos={initialProductos} />
           </div>
         </section>
 

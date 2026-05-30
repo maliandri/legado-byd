@@ -4,9 +4,9 @@ import { useState, useEffect, useCallback } from 'react'
 import { getProductos } from '@/lib/firebase/firestore'
 import type { Producto } from '@/types'
 
-export function useProducts(categoriaSlug?: string) {
-  const [todos, setTodos] = useState<Producto[]>([])
-  const [loading, setLoading] = useState(true)
+export function useProducts(categoriaSlug?: string, initialData?: Producto[]) {
+  const [todos, setTodos] = useState<Producto[]>(initialData ?? [])
+  const [loading, setLoading] = useState(!initialData)
   const [error, setError] = useState<string | null>(null)
 
   const load = useCallback(() => {
@@ -17,7 +17,9 @@ export function useProducts(categoriaSlug?: string) {
       .finally(() => setLoading(false))
   }, [])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    if (!initialData) load()
+  }, [load, initialData])
 
   const productos = categoriaSlug
     ? todos.filter(p => p.categoria === categoriaSlug)
