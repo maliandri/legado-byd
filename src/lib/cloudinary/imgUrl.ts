@@ -29,4 +29,8 @@ export const CLD = {
   /** Open Graph — 1200×630 fill */
   og: (url: string | null | undefined) =>
     cloudinaryImg(url, 'c_fill,f_auto,q_auto,w_1200,h_630'),
+
+  /** Instagram feed post — 1:1 square 1080px (always valid, ratio 1:1 is within 4:5–1.91:1) */
+  instagram: (url: string | null | undefined) =>
+    cloudinaryImg(url, 'c_fill,g_auto,f_auto,q_auto,w_1080,h_1080'),
 }

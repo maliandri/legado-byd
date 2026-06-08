@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { CLD } from '@/lib/cloudinary/imgUrl'
 
 export const runtime = 'nodejs'
 
@@ -23,7 +24,8 @@ export async function POST(req: Request) {
       source: 'legado-byd',
     }
 
-    if (imageUrl) payload.imageUrl = imageUrl
+    // Forzar aspect ratio 1:1 para Instagram (evita error 36003 "aspect ratio not supported")
+    if (imageUrl) payload.imageUrl = CLD.instagram(imageUrl)
     if (videoUrl) {
       payload.videoUrl = videoUrl
       payload.url = videoUrl
