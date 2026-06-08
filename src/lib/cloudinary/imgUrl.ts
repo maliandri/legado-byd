@@ -33,4 +33,8 @@ export const CLD = {
   /** Instagram feed post — 1:1 square 1080px (always valid, ratio 1:1 is within 4:5–1.91:1) */
   instagram: (url: string | null | undefined) =>
     cloudinaryImg(url, 'c_fill,g_auto,f_auto,q_auto,w_1080,h_1080'),
+
+  /** Instagram Reel — 9:16 vertical (1080×1920). Works on Cloudinary video URLs. */
+  reel: (url: string | null | undefined) =>
+    cloudinaryImg(url, 'c_fill,g_auto,ar_9:16,w_1080'),
 }

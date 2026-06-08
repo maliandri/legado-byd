@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { Upload, X, Sparkles, Copy, MessageCircle, RefreshCw, Search, Package, Loader2, Instagram, CheckCircle2, AlertCircle, Video, Image as ImageIcon } from 'lucide-react'
+import { CLD } from '@/lib/cloudinary/imgUrl'
 
 interface ImageItem {
   file?: File
@@ -456,7 +457,11 @@ export default function PublicacionLibre() {
             <div key={idx} className="relative rounded-sm overflow-hidden"
               style={{ aspectRatio: '1', backgroundColor: '#DDD0A8' }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={img.preview} alt="" className="w-full h-full object-cover" />
+              <img
+                src={img.cloudUrl ? CLD.instagram(img.cloudUrl) : img.preview}
+                alt=""
+                className="w-full h-full object-cover"
+              />
               {idx === 0 && (
                 <div className="absolute bottom-1 left-1 text-xs px-1.5 py-0.5 rounded-sm"
                   style={{ backgroundColor: 'rgba(61,26,5,0.75)', color: '#C4A040', fontSize: '0.6rem', fontWeight: 700 }}>
@@ -476,6 +481,95 @@ export default function PublicacionLibre() {
               </button>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Vista previa Instagram */}
+      {modo === 'foto' && images.length > 0 && (
+        <div>
+          <p className="text-xs font-semibold mb-2" style={{ color: '#6B3A1A' }}>
+            Vista previa Instagram (recorte 1:1)
+          </p>
+          <div className="flex gap-3 items-start">
+            <div style={{
+              width: 180, height: 180, borderRadius: 6, overflow: 'hidden',
+              border: '2px solid #E1306C', flexShrink: 0, position: 'relative',
+              backgroundColor: '#DDD0A8',
+            }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={images[0].cloudUrl ? CLD.instagram(images[0].cloudUrl) : images[0].preview}
+                alt="Vista previa Instagram"
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+              <div style={{
+                position: 'absolute', top: 6, left: 6,
+                backgroundColor: '#E1306C', borderRadius: 4,
+                padding: '2px 6px', fontSize: '0.6rem', color: 'white', fontWeight: 700,
+              }}>
+                IG
+              </div>
+              {!images[0].cloudUrl && (
+                <div style={{
+                  position: 'absolute', bottom: 0, left: 0, right: 0,
+                  backgroundColor: 'rgba(61,26,5,0.75)', color: '#F2E6C8',
+                  fontSize: '0.58rem', padding: '3px 6px', textAlign: 'center',
+                }}>
+                  Preview local — se optimiza al enviar
+                </div>
+              )}
+            </div>
+            <div style={{ fontSize: '0.75rem', color: '#6B3A1A', lineHeight: 1.5 }}>
+              <p style={{ fontWeight: 600, marginBottom: 4 }}>Ajustes automáticos:</p>
+              <p>✓ Recorte cuadrado 1:1</p>
+              <p>✓ 1080 × 1080 px</p>
+              <p>✓ Formato WebP/auto</p>
+              <p>✓ Calidad optimizada</p>
+              {images[0].cloudUrl
+                ? <p style={{ marginTop: 6, color: '#4A5E1A', fontWeight: 600 }}>✓ Imagen lista</p>
+                : <p style={{ marginTop: 6, color: '#A0622A' }}>⏳ Se sube al publicar</p>
+              }
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Vista previa Reel */}
+      {modo === 'reel' && video && (
+        <div>
+          <p className="text-xs font-semibold mb-2" style={{ color: '#6B3A1A' }}>
+            Vista previa Reel (9:16 vertical)
+          </p>
+          <div className="flex gap-3 items-start">
+            <div style={{
+              width: 101, height: 180, borderRadius: 6, overflow: 'hidden',
+              border: '2px solid #E1306C', flexShrink: 0, position: 'relative',
+              backgroundColor: '#1a1a1a',
+            }}>
+              <video
+                src={video.preview}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                muted autoPlay loop playsInline
+              />
+              <div style={{
+                position: 'absolute', top: 6, left: 6,
+                backgroundColor: '#E1306C', borderRadius: 4,
+                padding: '2px 6px', fontSize: '0.6rem', color: 'white', fontWeight: 700,
+              }}>
+                REEL
+              </div>
+            </div>
+            <div style={{ fontSize: '0.75rem', color: '#6B3A1A', lineHeight: 1.5 }}>
+              <p style={{ fontWeight: 600, marginBottom: 4 }}>Ajustes automáticos:</p>
+              <p>✓ Recorte vertical 9:16</p>
+              <p>✓ 1080 × 1920 px</p>
+              <p>✓ Auto gravity</p>
+              {video.cloudUrl
+                ? <p style={{ marginTop: 6, color: '#4A5E1A', fontWeight: 600 }}>✓ Video listo</p>
+                : <p style={{ marginTop: 6, color: '#A0622A' }}>⏳ Se sube al publicar</p>
+              }
+            </div>
+          </div>
         </div>
       )}
 
