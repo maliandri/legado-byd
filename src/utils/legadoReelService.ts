@@ -8,6 +8,7 @@ export interface ReelSlide {
   subtitulo?: string
   duracion?: number
   imagen?: string
+  productoIndex?: number | null
 }
 
 interface Theme {

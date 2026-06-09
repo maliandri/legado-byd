@@ -17,14 +17,15 @@ export async function POST(req: NextRequest) {
 
     const prompt = `Creá un script para un reel de Instagram de "Legado Bazar y Deco", insumos para panadería, pastelería y decoración en Neuquén, Argentina.
 
-Productos:
+Productos (índice base 0):
 ${listaProductos}
 
 Devolvé SOLO un JSON con este formato (sin markdown ni texto extra):
-{"slides":[{"titulo":"texto","subtitulo":"texto opcional","duracion":3}],"cta":"texto final"}
+{"slides":[{"titulo":"texto","subtitulo":"texto opcional","duracion":3,"productoIndex":null}],"cta":"texto final"}
 
 Reglas:
-- 1 slide de intro + 1 slide por producto + 1 slide de cierre con "legadobyd.com"
+- 1 slide de intro (productoIndex: null) + 1 slide por cada producto (productoIndex: 0, 1, 2...) + 1 slide de cierre con "legadobyd.com" (productoIndex: null)
+- productoIndex debe ser el índice exacto (0-based) del producto al que corresponde el slide, o null si es intro/cierre
 - Titulo: máximo 5 palabras, impactante
 - Subtitulo: máximo 7 palabras, complementario (puede omitirse)
 - Duración: 3 segundos por slide (número entero)

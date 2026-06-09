@@ -116,10 +116,13 @@ export default function ReelCreator() {
 
       const rawSlides: ReelSlide[] = data.slides ?? []
 
-      // Assign product images cycling through selected products
-      const withImages = rawSlides.map((slide, i) => ({
+      // Asignar imagen según productoIndex que devuelve la IA.
+      // null/undefined = slide de intro o cierre → sin imagen de producto.
+      const withImages = rawSlides.map((slide) => ({
         ...slide,
-        imagen: selectedProductos[i % selectedProductos.length]?.imagen || undefined,
+        imagen: slide.productoIndex != null
+          ? (selectedProductos[slide.productoIndex]?.imagen || undefined)
+          : undefined,
       }))
 
       setSlides(withImages)
@@ -474,7 +477,7 @@ export default function ReelCreator() {
                 style={{ backgroundColor: '#FDF8EE', border: '1px solid #DDD0A8' }}
               >
                 <div className="flex items-center gap-3 mb-2">
-                  {slide.imagen && (
+                  {slide.imagen ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={slide.imagen}
@@ -482,10 +485,35 @@ export default function ReelCreator() {
                       className="w-10 h-10 object-cover rounded-sm flex-shrink-0"
                       style={{ border: '1px solid #DDD0A8' }}
                     />
+                  ) : (
+                    <div className="w-10 h-10 rounded-sm flex-shrink-0 flex items-center justify-center text-lg"
+                      style={{ border: '1px dashed #DDD0A8', backgroundColor: '#F2E6C8' }}>
+                      🏷️
+                    </div>
                   )}
-                  <span className="text-xs font-bold flex-1" style={{ color: '#A0622A' }}>
-                    Slide {idx + 1}
-                  </span>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-xs font-bold" style={{ color: '#A0622A' }}>
+                      Slide {idx + 1}
+                    </span>
+                    {/* Selector de producto para este slide */}
+                    <select
+                      value={slide.productoIndex ?? ''}
+                      onChange={e => {
+                        const val = e.target.value
+                        const pi = val === '' ? null : Number(val)
+                        updateSlide(idx, {
+                          productoIndex: pi,
+                          imagen: pi != null ? (selectedProductos[pi]?.imagen || undefined) : undefined,
+                        })
+                      }}
+                      style={{ display: 'block', marginTop: 2, fontSize: '0.7rem', padding: '2px 4px', border: '1px solid #DDD0A8', borderRadius: 2, backgroundColor: '#FDF8EE', color: '#3D1A05', width: '100%' }}
+                    >
+                      <option value="">— sin foto de producto —</option>
+                      {selectedProductos.map((p, pi) => (
+                        <option key={p.id} value={pi}>{p.nombre}</option>
+                      ))}
+                    </select>
+                  </div>
                   <button
                     onClick={() => removeSlide(idx)}
                     style={{ color: '#A0622A' }}
