@@ -21,7 +21,11 @@ export async function uploadToCloudinary(
   const folder = resourceType === 'video' ? 'legado-reels' : 'legado-productos'
   const public_id = filename.replace(/\.[^/.]+$/, '').replace(/\s+/g, '-')
 
-  const signature = sign({ folder, public_id, timestamp })
+  // Para videos forzamos conversión a MP4/H.264 durante el upload (no al vuelo)
+  // Instagram requiere H.264 + AAC y rechaza formatos MOV/AVI/WebM directamente
+  const signParams: Record<string, string> = { folder, public_id, timestamp }
+  if (resourceType === 'video') signParams.format = 'mp4'
+  const signature = sign(signParams)
 
   const fd = new FormData()
   fd.append('file', new Blob([new Uint8Array(buffer)]))
@@ -30,6 +34,7 @@ export async function uploadToCloudinary(
   fd.append('signature', signature)
   fd.append('folder', folder)
   fd.append('public_id', public_id)
+  if (resourceType === 'video') fd.append('format', 'mp4')
 
   const res = await fetch(
     `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/${resourceType}/upload`,

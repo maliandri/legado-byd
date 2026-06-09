@@ -24,12 +24,13 @@ export async function POST(req: Request) {
       source: 'legado-byd',
     }
 
-    // Forzar aspect ratio correcto para Instagram (evita error 36003 "aspect ratio not supported")
+    // Imágenes: forzar 1:1 para Instagram (evita error 36003 "aspect ratio not supported")
     if (imageUrl) payload.imageUrl = CLD.instagram(imageUrl)
+    // Videos: se envían directos — la conversión a MP4/H.264 se hace al subir a Cloudinary,
+    // no al vuelo (transformaciones de video al vuelo son asíncronas y causan error 2207076)
     if (videoUrl) {
-      const reelUrl = CLD.reel(videoUrl)
-      payload.videoUrl = reelUrl
-      payload.url = reelUrl
+      payload.videoUrl = videoUrl
+      payload.url = videoUrl
     }
 
     const res = await fetch(webhookUrl, {
