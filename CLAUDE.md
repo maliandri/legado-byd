@@ -83,6 +83,10 @@ Google OAuth: intenta `signInWithPopup` primero; si falla con `auth/popup-blocke
 ## Carrito
 `CartContext` (`src/context/CartContext.tsx`) persiste en `localStorage` con `useReducer`. `CartDrawer` al confirmar pedido: guarda en Firestore `pedidos/{uid}/ordenes/` + llama `/api/pedido/confirmar` (no bloqueante) que envía email al cliente y al admin.
 
+**Login requerido para MercadoPago:** `CartDrawer.handlePagarConMP()` verifica `user` antes de continuar. Si no hay sesión, cierra el drawer y redirige a `/login?redirect=carrito`. En `LoginForm`, el param `redirect=carrito` muestra un banner azul explicativo. Tras login exitoso con `perfilCompleto=true`, guarda `sessionStorage.setItem('open-cart', '1')` y redirige a `/`. `CartDrawer` detecta ese flag en su `useEffect` y re-abre el carrito automáticamente.
+
+**`login/page.tsx` + `LoginForm.tsx`:** `useSearchParams()` requiere Suspense boundary para no bloquear el prerendering de Next.js. Patrón: `page.tsx` solo exporta `<Suspense><LoginForm /></Suspense>`; toda la lógica del formulario vive en `LoginForm.tsx` (client component con `'use client'`).
+
 ## Panel admin (`/admin`)
 Protegido por `AdminGuard` (verifica `isAdmin`). Tabs:
 | Tab | Funcionalidad |
@@ -92,6 +96,10 @@ Protegido por `AdminGuard` (verifica `isAdmin`). Tabs:
 | **Emails** | `EmailMasivo`: tag-input de hasta 100 destinatarios, intervalo configurable, prompt → Gemini genera asunto+cuerpo HTML, preview, progreso con cancel. Throttling client-side via setTimeout |
 | **Usuarios** | `UsuariosPanel`: listar/buscar/filtrar, bloquear (actualiza Firestore + Firebase Auth `disabled`), eliminar (Firestore + Auth), enviar email (manual o con Gemini), enviar ficha de producto |
 | **Operaciones** | Muestra colección `orders` plana. Modal de detalle muestra cliente, canal, ítems, monto, estado, **datos de entrega** (teléfono, dirección+altura, provincia) cuando están disponibles |
+| **Publicar** | `PublicacionLibre`: toggle Foto/Reel. Modo Foto: buscador de productos, hasta 4 imágenes, caption IA, **vista previa 1:1 Instagram** (180×180, borde rosa), publicar en Instagram (vía Make.com webhook) o WhatsApp. Modo Reel: dropzone de video (MP4/MOV), sube directo a Cloudinary desde browser (evita límite 6MB Netlify), **vista previa 9:16** (101×180, autoplay), publica en Instagram con `type:'reel'`. En ambos modos la preview aparece entre el grid de imágenes y el campo de tema. |
+| **Reel** | `ReelCreator`: 3 pasos — (1) seleccionar hasta 3 productos + tema visual, (2) editar guión IA (cada slide tiene `productoIndex` para mapear foto correcta) + seleccionar música Jamendo + selector manual de producto por slide, (3) grabar .webm con canvas + Web Audio API. Imagen del producto con Ken Burns effect, fade in/out entre slides, CTA dorado al final. Botón "Publicar en Instagram" sube webm a Cloudinary (convertido a MP4/H.264 en el upload) y lo envía a Make.com. |
+| **Panfletín** | `PanfletinAdmin`: crear panfleto PDF con hasta 6 productos. Formatos A4/Carta/2×1. Templates clásica/moderna/minimalista. Doble canvas: preview escalado + offscreen full-size para export. Fuentes sistema (no Google Fonts para html2canvas). QR generado con `qrcode` lib |
+| **Docs** | `DocumentacionAdmin`: genera y descarga documentación completa del sistema en formato Word (.doc HTML blob) |
 
 ## API Routes (`src/app/api/`)
 
@@ -103,7 +111,8 @@ Todas usan `export const runtime = 'nodejs'`. En Next.js 16, los params de rutas
 | `auth/verify-otp` | POST | Verifica y elimina OTP via **adminDb** |
 | `auth/send-bienvenida` | POST | Email de bienvenida post-registro |
 | `pedido/confirmar` | POST | Emails confirmación cliente + alerta admin |
-| `upload` | POST | Upload a Cloudinary via REST + SHA1 (`node:crypto` — no `crypto`) |
+| `upload` | POST | Upload imagen/video a Cloudinary via REST. Detecta `file.type` → usa `/image/upload` o `/video/upload`. `maxDuration=60`. Para videos grandes usar `/api/cloudinary-sign` + upload directo desde browser |
+| `cloudinary-sign` | GET | Devuelve firma para upload directo desde browser a Cloudinary (evita límite 6MB Netlify). Params: `?type=video\|image` |
 | `gemini` | POST | Chatbot IA |
 | `gemini-bulk` | POST | Descripciones masivas para productos sin descripción |
 | `sync-sheets` | POST | Backup Firestore → Google Sheet |
@@ -116,8 +125,13 @@ Todas usan `export const runtime = 'nodejs'`. En Next.js 16, los params de rutas
 | `admin/buscar-productos` | GET | Búsqueda de productos por nombre (?q=) via adminDb |
 | `admin/subir-precios` | POST | Sube todos los precios un porcentaje (1–1000%). Batch de 500, `Math.round(precio * (1 + pct/100))` |
 | `admin/limpiar-iva` | POST | Normaliza IVA corrupto en Firestore: `105→10.5`, rango 10–11→10.5, 20–22→21, inválido→delete |
+| `admin/generar-caption` | POST | Gemini genera caption para Instagram dado lista de productos y tema |
+| `admin/reel-script` | POST | Gemini genera guión de slides para ReelCreator dado lista de productos |
+| `admin/music` | GET | Busca tracks en Jamendo API por tema (`?theme=panaderia\|reposteria\|deco`). Requiere `JAMENDO_CLIENT_ID` |
+| `instagram/publicar` | POST | Envía payload al webhook Make.com (`MAKE_INSTAGRAM_WEBHOOK_URL`). Campos: `caption`, `imageUrl?`, `videoUrl?`, `type: 'post'\|'reel'`. **Imágenes:** aplica `CLD.instagram()` (crop 1:1, 1080px) antes de enviar para evitar error 36003. **Videos:** se envían directos — la conversión a H.264 ocurre al subir a Cloudinary, no al vuelo (evita error 2207076). |
 | `mercadopago/crear-preferencia` | POST | Crea preferencia MP + guarda en `pedidos/{uid}/ordenes` y `orders`. Acepta `vendedorId`, `telefono`, `direccion`, `altura`, `provincia` |
 | `mercadopago/webhook` | POST | Webhook MP: actualiza estado en `pedidos` y `orders` según payment.status |
+| `vendedor/confirmar-efectivo` | POST | Guarda orden efectivo en `orders` + `pedidos/anonimo/ordenes`, descuenta stock con `FieldValue.increment(-cantidad)` |
 
 ## Sistema de emails (Resend)
 Todas las funciones están en `src/lib/resend/client.ts`:
@@ -132,8 +146,13 @@ Emails con template propio: fondo `#F9EDD3`, header/footer `#3D1A05`, borde `#C4
 - **`src/app/layout.tsx`**: metadata global con `metadataBase`, title template (`%s | Legado Bazar y Deco`), OG, Twitter card, `verification.google` (`NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION`). JSON-LD `LocalBusiness` en `<head>`.
 - **`src/app/sitemap.ts`**: sitemap dinámico vía `adminDb()`. Incluye páginas estáticas + `/producto/[id]` para cada producto con `lastModified`.
 - **`src/app/robots.ts`**: desactiva `/admin/`, `/api/`, `/vendedor/`, `/registro/`, `/mi-cuenta/`. Referencia `/sitemap.xml`.
-- **`src/app/producto/[id]/page.tsx`**: convertido a server component. Exporta `generateMetadata` con `adminDb()` → título, descripción, canonical, OG con imagen Cloudinary, Twitter card. Renderiza `<ProductoClient id={id} />`.
-- **Pendiente:** agregar `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION` en Netlify y verificar en Google Search Console.
+- **`src/app/page.tsx`** (homepage): server component (`async function`). Fetches categorías y productos vía `adminDb()` → pasa `initialProductos` a `<ProductGrid>` → los links de productos están en el HTML inicial (resuelve las ~64 páginas orphan de Ahrefs). Strips Firestore Timestamps antes de pasar como props: `const { createdAt: _c, updatedAt: _u, ...rest } = d.data()`. Exporta `export const metadata: Metadata` con title, description, OG y canonical.
+- **`src/hooks/useProducts.ts`**: acepta `initialData?: Producto[]`. Si se provee, `useState` lo usa como valor inicial y `loading` empieza en `false`; `useEffect` saltea el fetch. Evita doble carga en la homepage.
+- **`src/components/ProductGrid.tsx`**: acepta `initialProductos?: Producto[]` y se la pasa a `useProducts`.
+- **`src/app/producto/[id]/page.tsx`**: exporta `generateMetadata` con `adminDb()` → título (máx 38 chars para que el total con sufijo quede ≤60), meta description 100–155 chars (helper `buildMetaDescription` rellena con sufijo de tienda si la descripción es corta), OG image con transform `c_fill,w_1200,h_630`, canonical. Pasa `initialProducto` a `ProductoClient`.
+- **`ProductoClient`**: acepta `initialProducto?: Producto | null`. Si viene pre-cargado, no hace fetch client-side. HTML inicial tiene H1 y descripción completa (resuelve "H1 missing" en Ahrefs).
+- **Imágenes optimizadas via Cloudinary:** `src/lib/cloudinary/imgUrl.ts` — helper `cloudinaryImg(url, transforms)` inserta transforms entre `/upload/` y el path. Presets en objeto `CLD`: `thumb` (400×400 crop), `detail` (800px), `og` (1200×630), `instagram` (1080×1080 crop), `reel` (9:16 crop). Usado en `ProductCard` y `ProductoClient` con `sizes` responsivos para que el navegador descargue el tamaño correcto.
+- **Google Search Console**: sitio verificado. Ahrefs health score objetivo: ~100. Resuelto: orphan pages (SSR homepage), H1 missing (SSR producto), imágenes grandes (Cloudinary transforms), meta descriptions (helper 100–155 chars), títulos largos (cap 38 chars).
 
 ## Catálogo — vista galería
 `ProductGrid` (`src/components/ProductGrid.tsx`) tiene toggle lista/galería para todos los usuarios. En galería: grid `grid-cols-2 sm:grid-cols-4`, cards con `aspect-ratio: 1/1`, imagen `object-cover`, gradiente oscuro de abajo, nombre (line-clamp-2) y precio en dorado superpuestos. Badge "Sin stock" si `stock === 0`.
@@ -175,6 +194,14 @@ Tipografía: **Playfair Display** (títulos serif) + **Inter** (cuerpo).
 ## Decisiones técnicas clave
 
 **Cloudinary:** SDK oficial crashea en Netlify. Usar siempre `fetch` + `import { createHash } from 'node:crypto'` (nunca `import crypto from 'crypto'`).
+
+**Cloudinary URL transforms — imágenes vs videos:**
+- **Imágenes**: los transforms en URL (`/upload/c_fill,w_1080,h_1080/...`) se aplican al instante. Seguro aplicarlos en la API route antes de enviar a Make.com o al cliente.
+- **Videos**: los transforms al vuelo son **asíncronos** — Cloudinary devuelve la URL pero el video procesado no está listo inmediatamente. Si Instagram intenta descargar esa URL antes de que Cloudinary termine, falla con error 2207076. **Solución:** incluir `format: 'mp4'` en los params de upload (y en la firma) → Cloudinary convierte a MP4/H.264 de forma **síncrona durante el upload**. La URL devuelta ya es un MP4 listo. Ver `src/lib/cloudinary/upload.ts`.
+
+**Cloudinary transforms helper:** `src/lib/cloudinary/imgUrl.ts` exporta `cloudinaryImg(url, transforms)` y el objeto `CLD` con presets listos. Usar en componentes cliente para optimizar imágenes sin re-subirlas.
+
+**ReelCreator — `productoIndex`:** El guión IA incluye `productoIndex` (número base-0 o `null`) en cada slide. `ReelCreator` usa ese valor para asignar `imagen: selectedProductos[slide.productoIndex]?.imagen`. Evita el bug anterior donde slides de intro/cierre ciclaban productos con `i % length`. El Step 2 también tiene un `<select>` por slide para asignación manual.
 
 **Filtrado de categorías:** `getProductosByCategoria` requiere índice compuesto. Se carga todo con `getProductos()` y se filtra en cliente.
 

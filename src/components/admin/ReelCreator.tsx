@@ -17,6 +17,8 @@ import {
   Instagram,
   CheckCircle2,
   AlertCircle,
+  Search,
+  X,
 } from 'lucide-react'
 import { getProductos } from '@/lib/firebase/firestore'
 import type { Producto } from '@/types'
@@ -37,6 +39,23 @@ const THEMES = [
   { id: 'panaderia', label: 'Panadería', color: '#3D1A05' },
   { id: 'reposteria', label: 'Repostería', color: '#5A1F3A' },
   { id: 'deco', label: 'Decoración', color: '#1E2D0A' },
+]
+
+const MUSIC_STYLES = [
+  { id: 'ambiental',    label: 'Ambiental',    emoji: '🌿' },
+  { id: 'acustica',     label: 'Acústica',     emoji: '🎸' },
+  { id: 'piano',        label: 'Piano',        emoji: '🎹' },
+  { id: 'jazz',         label: 'Jazz',         emoji: '🎷' },
+  { id: 'folk',         label: 'Folk',         emoji: '🪕' },
+  { id: 'clasica',      label: 'Clásica',      emoji: '🎻' },
+  { id: 'lounge',       label: 'Lounge',       emoji: '🍸' },
+  { id: 'chill',        label: 'Chill',        emoji: '❄️' },
+  { id: 'romantica',    label: 'Romántica',    emoji: '💐' },
+  { id: 'festivo',      label: 'Festivo',      emoji: '🎉' },
+  { id: 'latina',       label: 'Latina',       emoji: '🪘' },
+  { id: 'instrumental', label: 'Instrumental', emoji: '🎼' },
+  { id: 'electronica',  label: 'Electrónica',  emoji: '🎛️' },
+  { id: 'pop',          label: 'Pop',          emoji: '✨' },
 ]
 
 const inputStyle = {
@@ -68,9 +87,13 @@ export default function ReelCreator() {
 
   // Music
   const [tracks, setTracks] = useState<Track[]>([])
+  const [tracksOffset, setTracksOffset] = useState(0)
+  const [hasMoreTracks, setHasMoreTracks] = useState(false)
   const [loadingMusic, setLoadingMusic] = useState(false)
   const [selectedTrack, setSelectedTrack] = useState<Track | null>(null)
   const [previewingTrack, setPreviewingTrack] = useState<string | null>(null)
+  const [musicStyle, setMusicStyle] = useState('')
+  const [musicQuery, setMusicQuery] = useState('')
   const audioPreviewRef = useRef<HTMLAudioElement | null>(null)
 
   const offscreenRef = useRef<HTMLCanvasElement>(null)
@@ -134,13 +157,28 @@ export default function ReelCreator() {
     }
   }
 
-  async function cargarMusica() {
+  async function cargarMusica(append = false, styleOverride?: string, queryOverride?: string) {
+    const style = styleOverride !== undefined ? styleOverride : musicStyle
+    const query = queryOverride !== undefined ? queryOverride : musicQuery
+    const offset = append ? tracksOffset : 0
     setLoadingMusic(true)
     try {
-      const res = await fetch(`/api/admin/music?theme=${theme}`)
+      const params = new URLSearchParams({ theme, offset: String(offset) })
+      if (style) params.set('style', style)
+      if (query.trim()) params.set('q', query.trim())
+      const res = await fetch(`/api/admin/music?${params}`)
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Error')
-      setTracks(data.tracks ?? [])
+      const newTracks: Track[] = data.tracks ?? []
+      if (append) {
+        setTracks(prev => [...prev, ...newTracks])
+      } else {
+        setTracks(newTracks)
+        setTracksOffset(0)
+      }
+      const nextOffset = offset + newTracks.length
+      setTracksOffset(nextOffset)
+      setHasMoreTracks(newTracks.length === 20)
     } catch (err: any) {
       flash(`Error al cargar música: ${err.message}`)
     } finally {
@@ -549,25 +587,73 @@ export default function ReelCreator() {
 
           {/* Música */}
           <div className="pt-2" style={{ borderTop: '1px solid #DDD0A8' }}>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-semibold" style={{ color: '#6B3A1A' }}>
-                🎵 Música de fondo (Jamendo — CC libre)
-              </label>
+            <label className="text-xs font-semibold block mb-2" style={{ color: '#6B3A1A' }}>
+              🎵 Música de fondo (Jamendo — CC libre)
+            </label>
+
+            {/* Chips de estilo */}
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {MUSIC_STYLES.map(s => (
+                <button
+                  key={s.id}
+                  onClick={() => {
+                    const next = musicStyle === s.id ? '' : s.id
+                    setMusicStyle(next)
+                    setTracks([])
+                    cargarMusica(false, next, musicQuery)
+                  }}
+                  className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-colors"
+                  style={{
+                    backgroundColor: musicStyle === s.id ? '#3D1A05' : '#F2E6C8',
+                    color: musicStyle === s.id ? '#F2E6C8' : '#6B3A1A',
+                    border: `1px solid ${musicStyle === s.id ? '#3D1A05' : '#DDD0A8'}`,
+                  }}
+                >
+                  <span>{s.emoji}</span>
+                  {s.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Buscador libre */}
+            <div className="flex gap-1.5 mb-2">
+              <div className="relative flex-1">
+                <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: '#A0622A' }} />
+                <input
+                  type="text"
+                  placeholder="Buscar por nombre o artista..."
+                  value={musicQuery}
+                  onChange={e => setMusicQuery(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') { setTracks([]); cargarMusica(false, musicStyle, musicQuery) }
+                  }}
+                  style={{ ...inputStyle, paddingLeft: '2rem' }}
+                />
+                {musicQuery && (
+                  <button
+                    onClick={() => { setMusicQuery(''); setTracks([]); cargarMusica(false, musicStyle, '') }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2"
+                    style={{ color: '#A0622A' }}
+                  >
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
               <button
-                onClick={cargarMusica}
+                onClick={() => { setTracks([]); cargarMusica(false, musicStyle, musicQuery) }}
                 disabled={loadingMusic}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs font-semibold disabled:opacity-50 hover:opacity-80"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs font-semibold disabled:opacity-50 hover:opacity-80 flex-shrink-0"
                 style={{ backgroundColor: '#3D1A05', color: '#F2E6C8' }}
               >
                 {loadingMusic ? <Loader2 size={11} className="animate-spin" /> : <Music size={11} />}
-                {loadingMusic ? 'Cargando...' : tracks.length ? 'Recargar' : 'Buscar música'}
+                {loadingMusic ? '...' : tracks.length ? 'Recargar' : 'Buscar'}
               </button>
             </div>
 
             {tracks.length > 0 && (
               <div
-                className="space-y-1 rounded-sm overflow-hidden"
-                style={{ border: '1px solid #DDD0A8', maxHeight: 240, overflowY: 'auto' }}
+                className="rounded-sm overflow-hidden"
+                style={{ border: '1px solid #DDD0A8', maxHeight: 280, overflowY: 'auto' }}
               >
                 {/* Sin música */}
                 <div
@@ -608,6 +694,21 @@ export default function ReelCreator() {
                     </button>
                   </div>
                 ))}
+
+                {/* Cargar más */}
+                {hasMoreTracks && (
+                  <div className="px-3 py-2" style={{ borderTop: '1px solid #EEE0C0', backgroundColor: '#FDF8EE' }}>
+                    <button
+                      onClick={() => cargarMusica(true)}
+                      disabled={loadingMusic}
+                      className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-sm text-xs disabled:opacity-50 hover:opacity-80"
+                      style={{ border: '1px solid #DDD0A8', color: '#6B3A1A' }}
+                    >
+                      {loadingMusic ? <Loader2 size={10} className="animate-spin" /> : <Music size={10} />}
+                      Cargar más canciones
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
