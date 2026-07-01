@@ -79,9 +79,9 @@ export class LegadoReelService {
   }
 
   private initAudio(): void {
+    if (!this.audioUrl) return
     try {
       this.audioCtx = new AudioContext()
-      // Resume in case browser auto-suspended it
       this.audioCtx.resume().catch(() => {})
 
       const dest = this.audioCtx.createMediaStreamDestination()
@@ -89,39 +89,18 @@ export class LegadoReelService {
 
       const master = this.audioCtx.createGain()
       master.gain.value = 1.0
-      master.connect(this.audioCtx.destination) // speakers
-      master.connect(dest)                       // grabacion
+      master.connect(this.audioCtx.destination)
+      master.connect(dest)
 
-      if (this.audioUrl) {
-        this.audioEl = new Audio(this.audioUrl)
-        this.audioEl.crossOrigin = 'anonymous'
-        this.audioEl.loop = true
-        const src = this.audioCtx.createMediaElementSource(this.audioEl)
-        const gain = this.audioCtx.createGain()
-        gain.gain.value = 0.65
-        src.connect(gain)
-        gain.connect(master)
-        this.audioEl.play().catch(() => {})
-      } else {
-        // A-major ambient pad sintetizado
-        const notes = [
-          { f: 110, g: 0.10 },
-          { f: 220, g: 0.12 },
-          { f: 277.18, g: 0.09 },
-          { f: 329.63, g: 0.10 },
-          { f: 440, g: 0.08 },
-        ]
-        notes.forEach(({ f, g }) => {
-          const osc = this.audioCtx!.createOscillator()
-          const gain = this.audioCtx!.createGain()
-          osc.type = 'sine'
-          osc.frequency.value = f
-          gain.gain.value = g
-          osc.connect(gain)
-          gain.connect(master)
-          osc.start()
-        })
-      }
+      this.audioEl = new Audio(this.audioUrl)
+      this.audioEl.crossOrigin = 'anonymous'
+      this.audioEl.loop = true
+      const src = this.audioCtx.createMediaElementSource(this.audioEl)
+      const gain = this.audioCtx.createGain()
+      gain.gain.value = 0.65
+      src.connect(gain)
+      gain.connect(master)
+      this.audioEl.play().catch(() => {})
     } catch {
       // Audio no disponible en este entorno
     }
