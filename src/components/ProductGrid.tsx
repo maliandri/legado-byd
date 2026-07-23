@@ -12,6 +12,8 @@ import Link from 'next/link'
 interface Props {
   categorias: Categoria[]
   initialProductos?: Producto[]
+  /** Slug de categoría preseleccionado — lo usan las landings /categoria/[slug]. */
+  categoriaInicial?: string
 }
 
 type SortOption = 'relevancia' | 'precio-asc' | 'precio-desc' | 'nombre-asc' | 'nombre-desc'
@@ -45,10 +47,12 @@ function countActive(f: Filters) {
 
 type ViewMode = 'lista' | 'galeria'
 
-export default function ProductGrid({ categorias, initialProductos }: Props) {
+export default function ProductGrid({ categorias, initialProductos, categoriaInicial }: Props) {
   const { productos: todos, loading, error } = useProducts(undefined, initialProductos)
   const { isVendedor } = useAuth()
-  const [filters, setFilters] = useState<Filters>(FILTERS_DEFAULT)
+  const [filters, setFilters] = useState<Filters>(
+    categoriaInicial ? { ...FILTERS_DEFAULT, categoria: categoriaInicial } : FILTERS_DEFAULT,
+  )
   const [sort, setSort] = useState<SortOption>('relevancia')
   const [showExtra, setShowExtra] = useState(false)
   const [view, setView] = useState<ViewMode>('lista')

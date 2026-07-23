@@ -77,22 +77,51 @@ export default function ProductoClient({ id, initialProducto }: { id: string; in
   function handleAgregar() { addItem(producto!); setOpen(true) }
 
   // JSON-LD Product schema
+  const productUrl = `https://legadobyd.com/producto/${producto.id}`
   const productSchema = {
     '@context': 'https://schema.org',
     '@type': 'Product',
     name: producto.nombre,
     description: producto.descripcion || `${producto.nombre} — insumos en Legado Bazar y Deco, Neuquén`,
     image: imagenes.filter(Boolean),
-    brand: producto.marca ? { '@type': 'Brand', name: producto.marca } : undefined,
+    sku: producto.id,
+    ...(producto.marca ? { brand: { '@type': 'Brand', name: producto.marca } } : {}),
     offers: {
       '@type': 'Offer',
+      url: productUrl,
       priceCurrency: 'ARS',
       price: producto.precio,
+      itemCondition: 'https://schema.org/NewCondition',
       availability: producto.stock > 0
         ? 'https://schema.org/InStock'
         : 'https://schema.org/OutOfStock',
+      // Google descarta la oferta si el precio no declara vigencia
+      priceValidUntil: new Date(Date.now() + 90 * 864e5).toISOString().slice(0, 10),
       seller: { '@type': 'Organization', name: 'Legado Bazar y Deco' },
     },
+  }
+
+  // Miga de pan para el SERP (ya existe la visual, faltaba el structured data)
+  const breadcrumbSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Inicio', item: 'https://legadobyd.com' },
+      ...(categoriaLabel[producto.categoria]
+        ? [{
+            '@type': 'ListItem',
+            position: 2,
+            name: categoriaLabel[producto.categoria].replace(/^\S+\s/, ''),
+            item: `https://legadobyd.com/categoria/${producto.categoria}`,
+          }]
+        : []),
+      {
+        '@type': 'ListItem',
+        position: categoriaLabel[producto.categoria] ? 3 : 2,
+        name: producto.nombre,
+        item: productUrl,
+      },
+    ],
   }
 
   return (
@@ -100,6 +129,10 @@ export default function ProductoClient({ id, initialProducto }: { id: string; in
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
       />
       <Navbar />
 
@@ -109,6 +142,16 @@ export default function ProductoClient({ id, initialProducto }: { id: string; in
           <ol className="flex items-center gap-2" style={{ fontSize: '0.85rem', color: '#A0622A' }}>
             <li><a href="/" style={{ color: '#A0622A' }}>Inicio</a></li>
             <li>/</li>
+            {categoriaLabel[producto.categoria] && (
+              <>
+                <li>
+                  <a href={`/categoria/${producto.categoria}`} style={{ color: '#A0622A' }}>
+                    {categoriaLabel[producto.categoria].replace(/^\S+\s/, '')}
+                  </a>
+                </li>
+                <li>/</li>
+              </>
+            )}
             <li style={{ color: '#6B3A1A' }}>{producto.nombre}</li>
           </ol>
         </nav>

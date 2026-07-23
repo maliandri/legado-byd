@@ -9,7 +9,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ]
 
   try {
-    const snap = await adminDb().collection('productos').select('updatedAt', 'createdAt').get()
+    const [snap, catsSnap] = await Promise.all([
+      adminDb().collection('productos').select('updatedAt', 'createdAt').get(),
+      adminDb().collection('categorias').select('slug').get(),
+    ])
+
     const productos: MetadataRoute.Sitemap = snap.docs.map(doc => {
       const data = doc.data()
       const lastMod = data.updatedAt?.toDate?.() || data.createdAt?.toDate?.() || new Date()
@@ -20,7 +24,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         priority: 0.8,
       }
     })
-    return [...static_pages, ...productos]
+
+    // Landings de categoría: prioridad alta, son las que captan las búsquedas genéricas
+    const categorias: MetadataRoute.Sitemap = catsSnap.docs
+      .map(doc => doc.data().slug as string | undefined)
+      .filter((slug): slug is string => Boolean(slug))
+      .map(slug => ({
+        url: `${APP_URL}/categoria/${slug}`,
+        lastModified: new Date(),
+        changeFrequency: 'daily' as const,
+        priority: 0.9,
+      }))
+
+    return [...static_pages, ...categorias, ...productos]
   } catch {
     return static_pages
   }
