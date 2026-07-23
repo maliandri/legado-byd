@@ -25,9 +25,12 @@ export default function ProductoClient({ id, initialProducto }: { id: string; in
   const [loading, setLoading] = useState(!initialProducto)
   const [imgIndex, setImgIndex] = useState(0)
 
+  // Con initialProducto (HTML de ISR) refrescamos en segundo plano, sin spinner:
+  // evita mostrar un precio desactualizado si cambió después de regenerarse la página.
   useEffect(() => {
-    if (initialProducto) return
-    getProducto(id).then(p => { setProducto(p); setLoading(false) })
+    getProducto(id)
+      .then(p => { if (p) setProducto(p) })
+      .finally(() => setLoading(false))
   }, [id])
 
   if (loading) {

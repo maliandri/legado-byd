@@ -4,6 +4,11 @@ import ProductoClient from './ProductoClient'
 import type { Producto } from '@/types'
 
 const APP_URL = 'https://legadobyd.com'
+
+// ISR: mantiene el precio del HTML y del JSON-LD (offers.price) al día.
+// Ver nota en src/app/page.tsx.
+export const revalidate = 60
+
 const STORE_SUFFIX =
   ' — Legado Bazar y Deco, insumos para panadería, pastelería y decoración en Neuquén, Argentina.'
 

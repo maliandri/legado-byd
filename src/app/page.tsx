@@ -11,6 +11,11 @@ import type { Categoria, Producto } from '@/types'
 
 const APP_URL = 'https://legadobyd.com'
 
+// ISR: sin esto Next.js renderiza la página una sola vez en el build y sirve
+// precios/stock congelados hasta el próximo deploy. adminDb() no es fetch(),
+// así que Next no puede invalidar el caché solo.
+export const revalidate = 60
+
 export const metadata: Metadata = {
   title: 'Legado Bazar y Deco — El almacén del panadero en Neuquén',
   description:

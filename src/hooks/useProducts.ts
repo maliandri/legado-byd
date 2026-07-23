@@ -9,17 +9,21 @@ export function useProducts(categoriaSlug?: string, initialData?: Producto[]) {
   const [loading, setLoading] = useState(!initialData)
   const [error, setError] = useState<string | null>(null)
 
-  const load = useCallback(() => {
-    setLoading(true)
+  const load = useCallback((background = false) => {
+    if (!background) setLoading(true)
     getProductos()
       .then(setTodos)
-      .catch(() => setError('No se pudieron cargar los productos.'))
-      .finally(() => setLoading(false))
+      .catch(() => { if (!background) setError('No se pudieron cargar los productos.') })
+      .finally(() => { if (!background) setLoading(false) })
   }, [])
 
+  // Con initialData (HTML de ISR) refrescamos en segundo plano: el usuario ve el
+  // catálogo al instante y los precios se corrigen solos si cambiaron hace segundos.
+  // Sin initialData es la carga normal, con spinner.
   useEffect(() => {
-    if (!initialData) load()
-  }, [load, initialData])
+    load(Boolean(initialData))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [load])
 
   const productos = categoriaSlug
     ? todos.filter(p => p.categoria === categoriaSlug)
