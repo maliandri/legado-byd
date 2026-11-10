@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { notFound } from 'next/navigation'
 import { adminDb } from '@/lib/firebase/admin'
 import ProductoClient from './ProductoClient'
 import type { Producto } from '@/types'
@@ -34,7 +35,7 @@ export async function generateMetadata(
   const { id } = await params
   try {
     const snap = await adminDb().collection('productos').doc(id).get()
-    if (!snap.exists) return { title: 'Producto no encontrado | Legado Bazar y Deco' }
+    if (!snap.exists) return { title: 'Producto no encontrado | Legado Bazar y Deco', robots: { index: false, follow: false } }
     const p = snap.data()!
     const description = buildMetaDescription(p.nombre, p.descripcion)
     const rawImage = p.imagen || `${APP_URL}/legado.png`
@@ -71,13 +72,18 @@ export default async function ProductoPage(
 ) {
   const { id } = await params
   let initialProducto = null
+  let notFoundInDb = false
   try {
     const snap = await adminDb().collection('productos').doc(id).get()
     if (snap.exists) {
       // Strip Firestore Timestamps — not serializable as Client Component props
       const { createdAt: _c, updatedAt: _u, ...rest } = snap.data()!
       initialProducto = { id: snap.id, ...rest } as Producto
+    } else {
+      notFoundInDb = true
     }
   } catch {}
+  // Producto inexistente: devolver 404 real (evita soft-404 indexable)
+  if (notFoundInDb) notFound()
   return <ProductoClient id={id} initialProducto={initialProducto} />
 }

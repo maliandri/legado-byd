@@ -3,6 +3,9 @@ import { adminDb } from '@/lib/firebase/admin'
 
 const APP_URL = 'https://legadobyd.com'
 
+// Regenerar el sitemap cada hora para reflejar altas/bajas de productos
+export const revalidate = 3600
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const static_pages: MetadataRoute.Sitemap = [
     { url: APP_URL, lastModified: new Date(), changeFrequency: 'daily', priority: 1 },
